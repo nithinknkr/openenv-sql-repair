@@ -1,0 +1,67 @@
+[
+  {
+    "task_id": "syntax_missing_comma",
+    "difficulty": "Easy",
+    "bug_type": "Syntax Bug",
+    "description": "Missing comma in the SELECT column list, causing a syntax error in the query.",
+    "broken_query": "SELECT id username email FROM users;",
+    "gold_query": "SELECT id, username, email FROM users;",
+    "max_steps": 5,
+    "hints": [
+      "Check the column list in the SELECT statement.",
+      "SQL requires a comma separating each selected column."
+    ]
+  },
+  {
+    "task_id": "syntax_wrong_keyword",
+    "difficulty": "Easy",
+    "bug_type": "Syntax Bug",
+    "description": "Incorrect use of WERE instead of WHERE, leading to invalid SQL syntax.",
+    "broken_query": "SELECT * FROM orders WERE status = 'pending';",
+    "gold_query": "SELECT * FROM orders WHERE status = 'pending';",
+    "max_steps": 3,
+    "hints": [
+      "Look closely at the filtering keyword used.",
+      "The keyword for condition filtering is WHERE."
+    ]
+  },
+  {
+    "task_id": "logic_wrong_join",
+    "difficulty": "Medium",
+    "bug_type": "Logic Bug",
+    "description": "Use of INNER JOIN incorrectly excludes required rows; should be replaced with LEFT JOIN.",
+    "broken_query": "SELECT users.username, orders.id FROM users INNER JOIN orders ON users.id = orders.user_id;",
+    "gold_query": "SELECT users.username, orders.id FROM users LEFT JOIN orders ON users.id = orders.user_id;",
+    "max_steps": 5,
+    "hints": [
+      "What happens if a user doesn't have any orders?",
+      "Consider using an outer join to include all left-hand records regardless of a match."
+    ]
+  },
+  {
+    "task_id": "logic_wrong_aggregation",
+    "difficulty": "Medium",
+    "bug_type": "Logic Bug",
+    "description": "Incorrect aggregation using COUNT(*) instead of SUM(total_amount), resulting in wrong output.",
+    "broken_query": "SELECT user_id, COUNT(*) as total_spent FROM orders GROUP BY user_id;",
+    "gold_query": "SELECT user_id, SUM(total_amount) as total_spent FROM orders GROUP BY user_id;",
+    "max_steps": 5,
+    "hints": [
+      "Are you counting the number of rows, or summing up a specific value?",
+      "Replace the aggregation function with one that adds numeric values."
+    ]
+  },
+  {
+    "task_id": "perf_n_plus_one",
+    "difficulty": "Hard",
+    "bug_type": "Performance Bug",
+    "description": "Correlated subquery runs multiple times (N+1 problem); needs optimization using JOIN and GROUP BY.",
+    "broken_query": "SELECT id, name, (SELECT SUM(quantity) FROM order_items WHERE product_id = products.id) AS total_sold FROM products;",
+    "gold_query": "SELECT products.id, products.name, COALESCE(SUM(order_items.quantity), 0) AS total_sold FROM products LEFT JOIN order_items ON products.id = order_items.product_id GROUP BY products.id, products.name;",
+    "max_steps": 8,
+    "hints": [
+      "Avoid using subqueries in the SELECT clause when dealing with many rows.",
+      "Join the tables and use GROUP BY to perform the aggregation in a single query pass."
+    ]
+  }
+]

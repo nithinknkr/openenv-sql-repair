@@ -135,6 +135,10 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+.venv
+env/
+venv/
+ENV/
 .env
 .envrc
 .venv
@@ -205,3 +209,23 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# VS Code workspace settings
+.vscode/
+
+# JetBrains IDEs
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local environment files
+.python-version
+
+# Local test / temp sqlite dbs
+*.sqlite3
+*.db
+
+# Local secrets
+secrets.env
