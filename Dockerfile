@@ -12,7 +12,7 @@ WORKDIR /app
 # Install dependencies (single source of truth: pyproject.toml)
 COPY --chown=user pyproject.toml .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir fastapi "uvicorn[standard]" pydantic openai httpx
+    pip install --no-cache-dir fastapi "uvicorn[standard]" pydantic openai httpx openenv
 
 # Copy all project files
 COPY --chown=user . /app
