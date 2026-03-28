@@ -1,10 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "openenv-sql-repair"
-version = "0.1.0"
+name = "sql-auto-repair-openenv"
+version = "1.0.0"
+description = "SQL Auto-Repair RL environment for the OpenEnv framework"
+requires-python = ">=3.10"
 dependencies = [
-    "openenv-core",
-    "fastapi",
-    "uvicorn",
-    "pydantic",
-    "huggingface_hub"
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.23.0",
+    "pydantic>=2.0.0",
+    "openai>=1.0.0",
+    "httpx>=0.24.0",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["server", "baseline"]

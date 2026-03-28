@@ -1,0 +1,79 @@
+name: sql-auto-repair
+version: "1.0.0"
+description: >
+  A reinforcement-learning environment where an agent iteratively repairs
+  broken SQL queries against a sandboxed SQLite e-commerce database.
+  The agent must explore the schema, run candidate fixes, and submit a
+  corrected query — all evaluated by a deterministic row-diff grader.
+
+author: Q-Agents (Monish + Nithin)
+
+# ── Endpoints ────────────────────────────────────────────────────────────────
+endpoints:
+  reset:    POST /reset
+  step:     POST /step
+  state:    GET  /state
+  tasks:    GET  /tasks
+  grader:   GET  /grader
+  baseline: GET  /baseline
+  health:   GET  /health
+
+# ── Action Space ─────────────────────────────────────────────────────────────
+action_space:
+  type: object
+  fields:
+    action_type:
+      type: string
+      enum:
+        - view_schema    # reveal the full DB schema DDL
+        - view_error     # reveal the last execution error
+        - run_query      # test a candidate SQL query
+        - submit_query   # submit final answer (ends episode)
+      required: true
+    sql_query:
+      type: string
+      description: SQL query string (required for run_query and submit_query)
+      required: false
+
+# ── Observation Space ─────────────────────────────────────────────────────────
+observation_space:
+  type: object
+  fields:
+    session_id:         { type: string,  description: "UUID4 episode identifier" }
+    task_id:            { type: string,  description: "Active task identifier" }
+    difficulty:         { type: string,  description: "easy | medium | hard" }
+    description:        { type: string,  description: "What the query is supposed to do" }
+    broken_query:       { type: string,  description: "The original broken SQL" }
+    schema_info:        { type: string,  description: "DB schema DDL (null until view_schema is called)" }
+    last_query_result:  { type: array,   description: "Rows returned by last run_query" }
+    execution_error:    { type: string,  description: "SQLite error from last query" }
+    step_count:         { type: integer, description: "Steps taken so far" }
+    max_steps:          { type: integer, description: "Maximum steps allowed" }
+    hints:              { type: array,   description: "Optional hints for the agent" }
+    available_actions:  { type: array,   description: "Valid action_type values" }
+
+# ── Tasks ─────────────────────────────────────────────────────────────────────
+tasks:
+  - id: syntax_missing_comma
+    difficulty: easy
+    bug_type: syntax
+  - id: syntax_wrong_keyword
+    difficulty: easy
+    bug_type: syntax
+  - id: logic_wrong_join
+    difficulty: medium
+    bug_type: logic
+  - id: logic_wrong_aggregation
+    difficulty: medium
+    bug_type: logic
+  - id: perf_n_plus_one
+    difficulty: hard
+    bug_type: performance
+
+# ── Grader ────────────────────────────────────────────────────────────────────
+grader:
+  type: deterministic
+  score_range: [0.0, 1.0]
+  method: >
+    Tasks 1-4: Counter-based row diff with float normalisation and column-name bonus.
+    Task 5: correctness × 0.6 + efficiency × 0.4 (ExecutionCountProxy detects N+1).

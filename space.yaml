@@ -1,0 +1,12 @@
+title: SQL Auto-Repair OpenEnv
+emoji: 🔧
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+tags:
+  - openenv
+  - sql
+  - reinforcement-learning
+  - data-engineering
+pinned: false
