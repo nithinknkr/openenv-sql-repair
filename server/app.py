@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 # ── Path fix so `import inference` works from repo root ──────────────────────
 _ROOT = Path(__file__).resolve().parent.parent
@@ -57,6 +58,11 @@ def _get_env(session_id: str) -> SQLRepairEnvironment:
 # ---------------------------------------------------------------------------
 # Required OpenEnv endpoints
 # ---------------------------------------------------------------------------
+
+@app.get("/")
+def root():
+    """Redirect empty homepage to Swagger UI."""
+    return RedirectResponse(url="/docs")
 
 @app.get("/health")
 def health():
