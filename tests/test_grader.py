@@ -1,4 +1,4 @@
- """Unit tests for server.sandbox.SQLSandbox."""
+"""Unit tests for server.sandbox.SQLSandbox and grader functions."""
 
 import sys
 import os
@@ -83,6 +83,111 @@ class TestSandboxBlocklist(unittest.TestCase):
         schema = self.sandbox.get_schema_text()
         self.assertIn("CREATE TABLE", schema)
         self.assertIn("users", schema)
+
+
+from server.grader import row_diff_grade, hard_grade, _get_efficiency_score
+from server.sql_repair_environment import _TASKS
+
+
+class TestGraderScoring(unittest.TestCase):
+    def test_determinism(self) -> None:
+        gold_rows = [(1, "alice"), (2, "bob")]
+        gold_cols = ["id", "name"]
+        submitted_rows = [(1, "alice"), (2, "bob")]
+        submitted_cols = ["id", "name"]
+
+        row_score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
+        self.assertEqual(row_score, 1.0)
+
+        # Run 10x deterministic for row_diff
+        row_scores = [row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols) for _ in range(10)]
+        self.assertTrue(all(s == row_score for s in row_scores))
+
+        # Hard score determinism on a safe join query using sandbox model
+        sandbox = SQLSandbox()
+        try:
+            sql = "SELECT users.username, orders.id FROM users LEFT JOIN orders ON users.id = orders.user_id;"
+            hard_scores = [hard_grade(submitted_rows, submitted_cols, gold_rows, gold_cols, sandbox, sql) for _ in range(10)]
+            self.assertTrue(all(s == hard_scores[0] for s in hard_scores))
+        finally:
+            sandbox.close()
+
+    def test_score_range_always_between_zero_and_one(self) -> None:
+        gold_rows = [(1, "a"), (2, "b")]
+        gold_cols = ["id", "name"]
+        submitted_rows = [(1, "a")]
+        submitted_cols = ["id", "name"]
+
+        r = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
+        self.assertGreaterEqual(r, 0.0)
+        self.assertLessEqual(r, 1.0)
+
+        sandbox = SQLSandbox()
+        try:
+            e = _get_efficiency_score(sandbox, "SELECT users.username, orders.id FROM users LEFT JOIN orders ON users.id = orders.user_id;")
+            self.assertGreaterEqual(e, 0.0)
+            self.assertLessEqual(e, 1.0)
+        finally:
+            sandbox.close()
+
+    def test_null_handling_works(self) -> None:
+        gold_rows = [(None,)]
+        gold_cols = ["x"]
+        submitted_rows = [(None,)]
+        submitted_cols = ["x"]
+        score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
+        self.assertEqual(score, 1.0)
+
+    def test_empty_result_guard_select_one_against_expected_rows(self) -> None:
+        gold_rows = [(10,), (20,)]
+        gold_cols = ["x"]
+        submitted_rows = [(1,)]  # SELECT 1-like result does not match rows
+        submitted_cols = ["y"]  # different column to avoid column bonus
+        score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
+        self.assertEqual(score, 0.0)
+
+    def test_perfect_match_score_is_one(self) -> None:
+        gold_rows = [(1, "a"), (2, "b")]
+        gold_cols = ["id", "name"]
+        submitted_rows = [(1, "a"), (2, "b")]
+        submitted_cols = ["id", "name"]
+        score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
+        self.assertEqual(score, 1.0)
+
+    def test_partial_match_score_between_0_3_and_0_7(self) -> None:
+        gold_rows = [(1,), (2,), (3,), (4,)]
+        gold_cols = ["x"]
+        submitted_rows = [(1,), (2,)]
+        submitted_cols = ["x"]
+        score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
+        self.assertGreaterEqual(score, 0.3)
+        self.assertLessEqual(score, 0.7)
+
+    def test_column_mismatch_has_no_column_bonus(self) -> None:
+        gold_rows = [(1,), (2,), (3,), (4,)]
+        gold_cols = ["x"]
+        submitted_rows = [(1,), (2,), (3,)]
+        submitted_cols = ["wrong"]
+        score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
+        self.assertLess(score, 1.0)
+
+    def test_hard_task_single_join_efficiency(self) -> None:
+        sandbox = SQLSandbox()
+        try:
+            sql = "SELECT users.username, orders.id FROM users LEFT JOIN orders ON users.id = orders.user_id;"
+            eff = _get_efficiency_score(sandbox, sql)
+            self.assertEqual(eff, 1.0)
+        finally:
+            sandbox.close()
+
+    def test_hard_task_correlated_subquery_efficiency_zero(self) -> None:
+        sandbox = SQLSandbox()
+        try:
+            sql = _TASKS["perf_n_plus_one"]["broken_query"]
+            eff = _get_efficiency_score(sandbox, sql)
+            self.assertEqual(eff, 0.0)
+        finally:
+            sandbox.close()
 
 
 if __name__ == "__main__":

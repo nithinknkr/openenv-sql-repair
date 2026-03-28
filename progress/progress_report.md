@@ -9,9 +9,10 @@
 |---|---|---|
 | Day 1 — Repo + Data Layer | ⚠️ Mostly Done | 1 manual step pending (HF Space creation) |
 | Day 2 — Models + Sandbox | ✅ Complete | All files written and tests passing |
-| Day 3 — Deploy Skeleton + Session Manager | 🔴 NOT STARTED | Today's priority |
-| Day 4 — Environment Core + Grader | 🔴 NOT STARTED | Depends on Day 3 |
-| Day 5+ | 🔴 NOT STARTED | — |
+| Day 3 — Deploy Skeleton + Session Manager | ✅ Complete | Done |
+| Day 4 — Environment Core + Grader | ✅ Complete | Row-diff grader and Environment reset/state |
+| Day 5 — Environment step() | ✅ Complete | step() function implemented with penalties |
+| Day 6+ | 🔴 NOT STARTED | — |
 
 ---
 
@@ -356,17 +357,21 @@ If `action.sql_query` appears 3+ times in `history` → additional -0.20 penalty
 ```
 COMPLETED ✅                    EMPTY (TO BUILD) 🔴
 -----------                     -----------------
-pyproject.toml                  server/session_manager.py  ← Day 3 (TODAY)
-Dockerfile                      server/app.py              ← Day 3 (TODAY)
-space.yaml                      server/grader.py           ← Day 4
-openenv.yaml                    server/sql_repair_environment.py  ← Day 4
-data/schema.sql                 baseline/inference.py       ← Day 8
-data/tasks.json                 tests/test_episode.py       ← Day 7
-models.py                       tests/test_endpoints.py     ← Day 7
-client.py                       tests/test_concurrency.py   ← Day 7
-__init__.py
-server/sandbox.py
+pyproject.toml                  baseline/inference.py       ← Day 8
+Dockerfile                      tests/test_episode.py       ← Day 7
+space.yaml                      tests/test_endpoints.py     ← Day 7
+openenv.yaml                    tests/test_concurrency.py   ← Day 7
+data/schema.sql                 
+data/tasks.json                 
+models.py                       
+client.py                       
+__init__.py                     
+server/sandbox.py               
 tests/test_grader.py (sandbox tests)
+server/session_manager.py  ← Day 3
+server/app.py              ← Day 3
+server/grader.py           ← Day 4
+server/sql_repair_environment.py  ← Day 4/5
 ```
 
 ---
