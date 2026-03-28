@@ -29,7 +29,7 @@ from openai import OpenAI
 # ---------------------------------------------------------------------------
 
 API_BASE_URL: str = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-API_KEY: str = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
+API_KEY: str = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
 MODEL_NAME: str = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 SERVER_URL: str = os.getenv("SERVER_URL", "http://localhost:7860")
 
