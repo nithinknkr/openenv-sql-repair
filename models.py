@@ -74,17 +74,21 @@ class SQLRepairObservation(Observation):
     error_message: Optional[str] = Field(
         None, description="Error message from the broken query execution"
     )
-    last_query_result: Optional[str] = Field(
-        None, description="Result of the most recent run_query action"
+    last_query_result: Optional[list] = Field(
+        None, description="Rows returned by the most recent run_query action"
     )
     execution_error: Optional[str] = Field(
         None, description="Error encountered during the last run_query"
     )
     step_count: int = Field(0, description="Number of steps taken so far")
-    max_steps: int = Field(5, description="Maximum allowed steps for this task")
+    max_steps: int = Field(15, description="Maximum allowed steps for this task")
     hints: List[str] = Field(
         default_factory=list,
         description="Optional progressive hints for the agent",
+    )
+    available_actions: List[str] = Field(
+        default_factory=lambda: ["view_schema", "view_error", "run_query", "submit_query"],
+        description="Valid action_type values at this step",
     )
 
 

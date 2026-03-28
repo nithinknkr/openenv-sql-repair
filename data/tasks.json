@@ -3,10 +3,10 @@
     "task_id": "syntax_missing_comma",
     "difficulty": "Easy",
     "bug_type": "Syntax Bug",
-    "description": "Missing comma in the SELECT column list, causing a syntax error in the query.",
+    "description": "The SELECT column list is missing commas between column names, causing a syntax error. Fix the query so it correctly retrieves id, username, and email from the users table.",
     "broken_query": "SELECT id username email FROM users;",
     "gold_query": "SELECT id, username, email FROM users;",
-    "max_steps": 5,
+    "max_steps": 8,
     "hints": [
       "Check the column list in the SELECT statement.",
       "SQL requires a comma separating each selected column."
@@ -16,10 +16,10 @@
     "task_id": "syntax_wrong_keyword",
     "difficulty": "Easy",
     "bug_type": "Syntax Bug",
-    "description": "Incorrect use of WERE instead of WHERE, leading to invalid SQL syntax.",
+    "description": "The WHERE keyword is misspelled as WERE, causing a syntax error. Fix the query to return all orders with status 'pending'.",
     "broken_query": "SELECT * FROM orders WERE status = 'pending';",
     "gold_query": "SELECT * FROM orders WHERE status = 'pending';",
-    "max_steps": 3,
+    "max_steps": 8,
     "hints": [
       "Look closely at the filtering keyword used.",
       "The keyword for condition filtering is WHERE."
@@ -29,39 +29,43 @@
     "task_id": "logic_wrong_join",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
-    "description": "Use of INNER JOIN incorrectly excludes required rows; should be replaced with LEFT JOIN.",
+    "description": "The query uses INNER JOIN which excludes users with no orders. Some users in the system have never placed an order — they must still appear in the results (with NULL for the order id). Fix the join type to include ALL users.",
     "broken_query": "SELECT users.username, orders.id FROM users INNER JOIN orders ON users.id = orders.user_id;",
     "gold_query": "SELECT users.username, orders.id FROM users LEFT JOIN orders ON users.id = orders.user_id;",
-    "max_steps": 5,
+    "max_steps": 12,
     "hints": [
-      "What happens if a user doesn't have any orders?",
-      "Consider using an outer join to include all left-hand records regardless of a match."
+      "What happens if a user has never placed an order?",
+      "Consider using an outer join to include all left-hand records regardless of a match.",
+      "INNER JOIN only returns rows where a match exists in both tables."
     ]
   },
   {
     "task_id": "logic_wrong_aggregation",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
-    "description": "Incorrect aggregation using COUNT(*) instead of SUM(total_amount), resulting in wrong output.",
+    "description": "The query uses COUNT(*) but the task requires summing the total_amount spent per user, not counting the number of orders. Fix the aggregation function.",
     "broken_query": "SELECT user_id, COUNT(*) as total_spent FROM orders GROUP BY user_id;",
     "gold_query": "SELECT user_id, SUM(total_amount) as total_spent FROM orders GROUP BY user_id;",
-    "max_steps": 5,
+    "max_steps": 12,
     "hints": [
-      "Are you counting the number of rows, or summing up a specific value?",
-      "Replace the aggregation function with one that adds numeric values."
+      "Are you counting rows or summing a numeric value?",
+      "Replace COUNT(*) with an aggregation that adds up amounts.",
+      "The column you need to aggregate is total_amount."
     ]
   },
   {
     "task_id": "perf_n_plus_one",
     "difficulty": "Hard",
     "bug_type": "Performance Bug",
-    "description": "Correlated subquery runs multiple times (N+1 problem); needs optimization using JOIN and GROUP BY.",
+    "description": "The correlated subquery in the SELECT clause executes once per product row (N+1 problem), which is extremely slow at scale. Rewrite the query to use a single JOIN + GROUP BY instead. Also note: products with no order items must show 0 (not NULL) for total_sold.",
     "broken_query": "SELECT id, name, (SELECT SUM(quantity) FROM order_items WHERE product_id = products.id) AS total_sold FROM products;",
     "gold_query": "SELECT products.id, products.name, COALESCE(SUM(order_items.quantity), 0) AS total_sold FROM products LEFT JOIN order_items ON products.id = order_items.product_id GROUP BY products.id, products.name;",
-    "max_steps": 8,
+    "max_steps": 15,
     "hints": [
-      "Avoid using subqueries in the SELECT clause when dealing with many rows.",
-      "Join the tables and use GROUP BY to perform the aggregation in a single query pass."
+      "Avoid subqueries in the SELECT clause for large tables — they cause N+1 scans.",
+      "Join the tables and use GROUP BY to aggregate in a single pass.",
+      "Use COALESCE to convert NULL to 0 for products with no orders.",
+      "The correct approach: LEFT JOIN order_items ON products.id = order_items.product_id"
     ]
   }
 ]
