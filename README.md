@@ -19,6 +19,8 @@ A complete **reinforcement learning environment** built on the OpenEnv framework
 
 Unlike static linters (SQLFluff, etc.), this environment requires an agent to **iteratively explore a live database** — running queries, reading errors, and rewriting SQL based on live feedback. Static analysis tools cannot replicate this workflow.
 
+> **Design Rationale — Dataset Size:** The schema is intentionally compact (5 tables, 50 users, 40 products, 25 orders) to ensure fully deterministic, reproducible grading across all evaluation runs. The grader compares exact row sets — larger synthetic datasets would introduce ordering non-determinism without adding evaluation signal. The *complexity* comes from the query logic, not the row count.
+
 ---
 
 ## What the Agent Does
@@ -65,8 +67,8 @@ step(submit_query)  →  Agent submits final answer → grader scores 0.0–1.0 
 
 | Task ID | Difficulty | Bug Type | Expected Score |
 |---|---|---|---|
-| `syntax_missing_comma` | Easy | Syntax | ~0.90 |
-| `syntax_wrong_keyword` | Easy | Syntax | ~0.90 |
+| `syntax_missing_comma`     | Easy   | Syntax      | ~1.00 |
+| `syntax_ambiguous_column`  | Easy   | Syntax      | ~1.00 |
 | `logic_wrong_join` | Medium | Logic | ~0.45 |
 | `logic_wrong_aggregation` | Medium | Logic | ~0.50 |
 | `perf_n_plus_one` | Hard | Performance | ~0.28 |

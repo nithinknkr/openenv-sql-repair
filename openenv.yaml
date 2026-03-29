@@ -57,7 +57,7 @@ tasks:
   - id: syntax_missing_comma
     difficulty: easy
     bug_type: syntax
-  - id: syntax_wrong_keyword
+  - id: syntax_ambiguous_column
     difficulty: easy
     bug_type: syntax
   - id: logic_wrong_join

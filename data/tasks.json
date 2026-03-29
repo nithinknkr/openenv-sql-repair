@@ -13,16 +13,17 @@
     ]
   },
   {
-    "task_id": "syntax_wrong_keyword",
+    "task_id": "syntax_ambiguous_column",
     "difficulty": "Easy",
     "bug_type": "Syntax Bug",
-    "description": "The WHERE keyword is misspelled as WERE, causing a syntax error. Fix the query to return all orders with status 'pending'.",
-    "broken_query": "SELECT * FROM orders WERE status = 'pending';",
-    "gold_query": "SELECT * FROM orders WHERE status = 'pending';",
+    "description": "The query joins users and orders but references 'id' without a table prefix. SQLite raises 'ambiguous column name: id' because both tables have an id column. Fix the query by qualifying the column with its table name so it returns each user's username alongside their order id.",
+    "broken_query": "SELECT username, id FROM users JOIN orders ON users.id = orders.user_id;",
+    "gold_query": "SELECT users.username, orders.id FROM users JOIN orders ON users.id = orders.user_id;",
     "max_steps": 8,
     "hints": [
-      "Look closely at the filtering keyword used.",
-      "The keyword for condition filtering is WHERE."
+      "When two tables share a column name, SQLite cannot tell which one you mean.",
+      "Prefix the ambiguous column with its table name, e.g. orders.id.",
+      "Both tables have an 'id' column — be explicit about which one you want."
     ]
   },
   {
