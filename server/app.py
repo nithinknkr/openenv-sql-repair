@@ -189,7 +189,7 @@ def leaderboard():
                 "model": "gpt-4o-mini (temp=0)",
                 "scores": {
                     "syntax_missing_comma": 0.90,
-                    "syntax_wrong_keyword": 0.90,
+                    "syntax_ambiguous_column": 0.90,
                     "logic_wrong_join": 0.45,
                     "logic_wrong_aggregation": 0.50,
                     "perf_n_plus_one": 0.28,
@@ -200,7 +200,7 @@ def leaderboard():
                 "model": "random agent",
                 "scores": {
                     "syntax_missing_comma": 0.05,
-                    "syntax_wrong_keyword": 0.03,
+                    "syntax_ambiguous_column": 0.03,
                     "logic_wrong_join": 0.01,
                     "logic_wrong_aggregation": 0.01,
                     "perf_n_plus_one": 0.00,

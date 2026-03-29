@@ -14,6 +14,8 @@ Usage:
 """
 
 from __future__ import annotations
+from dotenv import load_dotenv
+load_dotenv()
 
 import json
 import os
@@ -31,7 +33,7 @@ from openai import OpenAI
 API_BASE_URL: str = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 API_KEY: str = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
 MODEL_NAME: str = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-SERVER_URL: str = os.getenv("SERVER_URL", "http://localhost:7860")
+SERVER_URL: str = os.getenv("SERVER_URL" , "http://localhost:7860")
 
 TEMPERATURE: float = 0.0      # Must be 0 for reproducibility
 MAX_TOKENS: int = 512
@@ -39,7 +41,7 @@ REQUEST_TIMEOUT: int = 30     # seconds per HTTP call
 
 TASK_IDS = [
     "syntax_missing_comma",
-    "syntax_wrong_keyword",
+    "syntax_ambiguous_column",
     "logic_wrong_join",
     "logic_wrong_aggregation",
     "perf_n_plus_one",
