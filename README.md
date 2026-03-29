@@ -117,9 +117,9 @@ docker run -p 7860:7860 -e HF_TOKEN=hf_... -e MODEL_NAME=Qwen/Qwen2.5-72B-Instru
 
 | Task | Score |
 |---|---|
-| syntax_missing_comma | 0.90 |
-| syntax_wrong_keyword | 0.90 |
-| logic_wrong_join | 0.45 |
-| logic_wrong_aggregation | 0.50 |
-| perf_n_plus_one | 0.28 |
-| **Average** | **0.61** |
+| syntax_missing_comma | 1.000 |
+| syntax_wrong_keyword | 1.000 |
+| logic_wrong_join | 1.000 |
+| logic_wrong_aggregation | 1.000 |
+| perf_n_plus_one | 1.000 |
+| **Average** | **1.000** |
