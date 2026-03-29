@@ -123,14 +123,14 @@ def test_cross_session_isolation():
     task_id_s1 = reset_s1.json()["task_id"]
     
     # Create session S2 with task B
-    reset_s2 = client.post("/reset", params={"task_id": "syntax_wrong_keyword"})
+    reset_s2 = client.post("/reset", params={"task_id": "syntax_ambiguous_column"})
     session_id_s2 = reset_s2.json()["session_id"]
     task_id_s2 = reset_s2.json()["task_id"]
     broken_query_s2 = reset_s2.json()["broken_query"]
     
     # Verify they are different tasks
     assert task_id_s1 == "syntax_missing_comma"
-    assert task_id_s2 == "syntax_wrong_keyword"
+    assert task_id_s2 == "syntax_ambiguous_column"
     assert task_id_s1 != task_id_s2
     
     # Step S1 five times
@@ -149,7 +149,7 @@ def test_cross_session_isolation():
     
     # Verify S2 still has its original task
     obs_s2 = client.get(f"/state?session_id={session_id_s2}").json()
-    assert obs_s2["task_id"] == "syntax_wrong_keyword"
+    assert obs_s2["task_id"] == "syntax_ambiguous_column"
     
     # Verify S2's observation still shows broken_query from task B
     step_s2 = client.post(
@@ -274,7 +274,7 @@ def test_session_isolation_with_different_task_ids():
     """
     task_ids = [
         "syntax_missing_comma",
-        "syntax_wrong_keyword",
+        "syntax_ambiguous_column",
         "logic_wrong_join",
         "logic_wrong_aggregation",
         "perf_n_plus_one",

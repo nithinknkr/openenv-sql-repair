@@ -99,7 +99,7 @@ def test_tasks_endpoint_all_tasks_present():
     task_ids = {task["task_id"] for task in data["tasks"]}
     expected_task_ids = {
         "syntax_missing_comma",
-        "syntax_wrong_keyword",
+        "syntax_ambiguous_column",
         "logic_wrong_join",
         "logic_wrong_aggregation",
         "perf_n_plus_one",
