@@ -27,46 +27,73 @@
     ]
   },
   {
-    "task_id": "logic_wrong_join",
+    "task_id": "logic_operator_precedence",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
-    "description": "The query uses INNER JOIN which excludes users with no orders. Some users in the system have never placed an order — they must still appear in the results (with NULL for the order id). Fix the join type to include ALL users.",
-    "broken_query": "SELECT users.username, orders.id FROM users INNER JOIN orders ON users.id = orders.user_id;",
-    "gold_query": "SELECT users.username, orders.id FROM users LEFT JOIN orders ON users.id = orders.user_id;",
+    "description": "The query should find high-risk orders: those that are (cancelled OR pending) AND have a total_amount above $500. Due to SQL operator precedence (AND binds before OR), the current query returns ALL cancelled orders regardless of amount, plus only high-value pending orders. No error is raised — the results just silently include wrong rows. Fix the filter logic.",
+    "broken_query": "SELECT id, user_id, status, total_amount FROM orders WHERE status = 'cancelled' OR status = 'pending' AND total_amount > 500.00 ORDER BY total_amount DESC;",
+    "gold_query": "SELECT id, user_id, status, total_amount FROM orders WHERE (status = 'cancelled' OR status = 'pending') AND total_amount > 500.00 ORDER BY total_amount DESC;",
     "max_steps": 12,
     "hints": [
-      "What happens if a user has never placed an order?",
-      "Consider using an outer join to include all left-hand records regardless of a match.",
-      "INNER JOIN only returns rows where a match exists in both tables."
+      "The query runs without error but returns incorrect rows.",
+      "SQL evaluates AND before OR — this can silently change which rows qualify.",
+      "Compare the row count from your query against what the description requires."
     ]
   },
   {
-    "task_id": "logic_wrong_aggregation",
+    "task_id": "logic_date_boundary",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
-    "description": "The query uses COUNT(*) but the task requires summing the total_amount spent per user, not counting the number of orders. Fix the aggregation function.",
-    "broken_query": "SELECT user_id, COUNT(*) as total_spent FROM orders GROUP BY user_id;",
-    "gold_query": "SELECT user_id, SUM(total_amount) as total_spent FROM orders GROUP BY user_id;",
+    "description": "The Q1 2025 order report should return ALL 25 orders in the system. However, the query silently drops the first 5 orders (placed January 5th through 18th) due to a wrong date filter. No error is raised — the result just has fewer rows than expected. Fix both the comparison operator and the date boundary to return all 25 orders.",
+    "broken_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) > '2025-01-18' ORDER BY created_at;",
+    "gold_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) >= '2025-01-01' ORDER BY created_at;",
     "max_steps": 12,
     "hints": [
-      "Are you counting rows or summing a numeric value?",
-      "Replace COUNT(*) with an aggregation that adds up amounts.",
-      "The column you need to aggregate is total_amount."
+      "The query returns fewer rows than expected — inspect the WHERE clause carefully.",
+      "Run a COUNT(*) with no filter to see how many orders exist in total.",
+      "Both the comparison operator and the date value in the filter may need to change."
     ]
   },
   {
     "task_id": "perf_n_plus_one",
     "difficulty": "Hard",
     "bug_type": "Performance Bug",
-    "description": "The correlated subquery in the SELECT clause executes once per product row (N+1 problem), which is extremely slow at scale. Rewrite the query to use a single JOIN + GROUP BY instead. Also note: products with no order items must show 0 (not NULL) for total_sold.",
+    "description": "The correlated subquery in the SELECT clause executes once per product row (N+1 problem), which is extremely slow at scale. Rewrite the query to retrieve the same result set using a single SQL statement with no correlated subqueries. Products with no order items must show 0 (not NULL) for total_sold.",
     "broken_query": "SELECT id, name, (SELECT SUM(quantity) FROM order_items WHERE product_id = products.id) AS total_sold FROM products;",
     "gold_query": "SELECT products.id, products.name, COALESCE(SUM(order_items.quantity), 0) AS total_sold FROM products LEFT JOIN order_items ON products.id = order_items.product_id GROUP BY products.id, products.name;",
     "max_steps": 15,
     "hints": [
-      "Avoid subqueries in the SELECT clause for large tables — they cause N+1 scans.",
-      "Join the tables and use GROUP BY to aggregate in a single pass.",
-      "Use COALESCE to convert NULL to 0 for products with no orders.",
-      "The correct approach: LEFT JOIN order_items ON products.id = order_items.product_id"
+      "Correlated subqueries in SELECT re-execute for every row in the outer query — avoid them.",
+      "A single-pass approach using aggregation can compute the same result more efficiently.",
+      "Products with zero sales must still appear in the output (handle the NULL case)."
+    ]
+  },
+  {
+    "task_id": "logic_window_partition",
+    "difficulty": "Hard",
+    "bug_type": "Logic Bug",
+    "description": "The query ranks products by price, but it ranks them globally across all 40 products instead of within each category. The query runs without error and returns the correct number of rows — but every rank value is wrong. Products should be ranked 1st, 2nd, 3rd etc. within their own category. Fix the window function so the rank resets per category.",
+    "broken_query": "SELECT p.id, p.name, p.price, c.name AS category, RANK() OVER (ORDER BY p.price DESC) AS price_rank FROM products p JOIN categories c ON p.category_id = c.id ORDER BY c.name, price_rank;",
+    "gold_query": "SELECT p.id, p.name, p.price, c.name AS category, RANK() OVER (PARTITION BY p.category_id ORDER BY p.price DESC) AS price_rank FROM products p JOIN categories c ON p.category_id = c.id ORDER BY c.name, price_rank;",
+    "max_steps": 15,
+    "hints": [
+      "The query executes without error and returns the correct number of rows.",
+      "Inspect the rank values — do they reset between categories or count globally?",
+      "Window functions support a clause that resets computation per group."
+    ]
+  },
+  {
+    "task_id": "logic_missing_having",
+    "difficulty": "Hard",
+    "bug_type": "Logic Bug",
+    "description": "The query should return only orders that contain more than one line item (multi-item orders). It joins orders, users, and order_items correctly and groups properly — but it returns ALL orders including single-item ones. The aggregation filter is missing. Fix the query to exclude single-item orders.",
+    "broken_query": "SELECT o.id AS order_id, u.username, COUNT(oi.id) AS item_count, SUM(oi.quantity * oi.unit_price) AS order_total FROM orders o JOIN users u ON o.user_id = u.id JOIN order_items oi ON o.id = oi.order_id GROUP BY o.id, u.username ORDER BY item_count DESC;",
+    "gold_query": "SELECT o.id AS order_id, u.username, COUNT(oi.id) AS item_count, SUM(oi.quantity * oi.unit_price) AS order_total FROM orders o JOIN users u ON o.user_id = u.id JOIN order_items oi ON o.id = oi.order_id GROUP BY o.id, u.username HAVING COUNT(oi.id) > 1 ORDER BY item_count DESC;",
+    "max_steps": 15,
+    "hints": [
+      "The query runs without error but returns more rows than expected.",
+      "You cannot filter on aggregated values (like COUNT) using a WHERE clause.",
+      "Run the broken query and compare its row count to what the description requires."
     ]
   }
 ]

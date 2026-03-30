@@ -208,5 +208,73 @@ class TestGraderScoring(unittest.TestCase):
             sandbox.close()
 
 
+class TestNewTaskGrading(unittest.TestCase):
+    """Verify gold queries score 1.0 and broken queries score below 1.0 for all new tasks."""
+
+    def _gold_vs_broken(self, task_id: str) -> tuple:
+        """Return (gold_score, broken_score) for a task using row_diff_grade."""
+        sandbox = SQLSandbox()
+        try:
+            task = _TASKS[task_id]
+            gold_rows, gold_cols, _ = sandbox.execute(task["gold_query"])
+            broken_rows, broken_cols, _ = sandbox.execute(task["broken_query"])
+            gold_score = row_diff_grade(gold_rows, gold_cols, gold_rows, gold_cols, include_column_bonus=False)
+            broken_score = row_diff_grade(broken_rows, broken_cols, gold_rows, gold_cols, include_column_bonus=False)
+            return gold_score, broken_score
+        finally:
+            sandbox.close()
+
+    def test_logic_operator_precedence_gold_scores_one(self) -> None:
+        """Gold query for operator precedence task must score 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("logic_operator_precedence")
+        self.assertEqual(gold_score, 1.0)
+
+    def test_logic_operator_precedence_broken_scores_below_one(self) -> None:
+        """Broken query (missing parens) returns extra rows → score < 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("logic_operator_precedence")
+        self.assertLess(broken_score, 1.0)
+
+    def test_logic_date_boundary_gold_scores_one(self) -> None:
+        """Gold query for date boundary task must score 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("logic_date_boundary")
+        self.assertEqual(gold_score, 1.0)
+
+    def test_logic_date_boundary_broken_scores_below_one(self) -> None:
+        """Broken query (wrong date + operator) returns 20 rows vs gold 25 → score < 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("logic_date_boundary")
+        self.assertLess(broken_score, 1.0)
+
+    def test_logic_window_partition_gold_scores_one(self) -> None:
+        """Gold query (PARTITION BY category_id) must score 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("logic_window_partition")
+        self.assertEqual(gold_score, 1.0)
+
+    def test_logic_window_partition_broken_scores_below_one(self) -> None:
+        """Broken query ranks globally → most rank values differ from gold → score < 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("logic_window_partition")
+        self.assertLess(broken_score, 1.0)
+
+    def test_logic_missing_having_gold_scores_one(self) -> None:
+        """Gold query (with HAVING COUNT > 1) must score 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("logic_missing_having")
+        self.assertEqual(gold_score, 1.0)
+
+    def test_logic_missing_having_broken_scores_below_one(self) -> None:
+        """Broken query returns all 25 orders vs gold 14 → score < 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("logic_missing_having")
+        self.assertLess(broken_score, 1.0)
+
+    def test_all_gold_queries_execute_without_error(self) -> None:
+        """Every gold query in tasks.json must execute cleanly in the sandbox."""
+        sandbox = SQLSandbox()
+        try:
+            for task_id, task in _TASKS.items():
+                rows, cols, err = sandbox.execute(task["gold_query"])
+                self.assertIsNone(err, msg=f"{task_id}: gold query raised error: {err}")
+                self.assertGreater(len(rows), 0, msg=f"{task_id}: gold query returned 0 rows")
+        finally:
+            sandbox.close()
+
+
 if __name__ == "__main__":
     unittest.main()

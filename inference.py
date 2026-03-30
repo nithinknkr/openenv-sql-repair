@@ -1,12 +1,12 @@
 """
 SQL Auto-Repair OpenEnv — Baseline Inference Script
 ====================================================
-Uses a ReAct loop (Reason → Act → Observe) against all 5 tasks.
+Uses a ReAct loop (Reason → Act → Observe) against all 7 tasks.
 
 Environment variables:
-    API_BASE_URL  — LLM API base URL  (default: https://router.huggingface.co/v1)
-    MODEL_NAME    — model identifier  (default: Qwen/Qwen2.5-72B-Instruct)
-    HF_TOKEN      — Hugging Face / API key
+    API_BASE_URL  — LLM API base URL  (default: https://api.groq.com/openai/v1)
+    MODEL_NAME    — model identifier  (default: llama-3.3-70b-versatile)
+    OPENAI_API_KEY / HF_TOKEN — API key
     SERVER_URL    — environment server (default: http://localhost:7860)
 
 Usage:
@@ -42,9 +42,11 @@ REQUEST_TIMEOUT: int = 30     # seconds per HTTP call
 TASK_IDS = [
     "syntax_missing_comma",
     "syntax_ambiguous_column",
-    "logic_wrong_join",
-    "logic_wrong_aggregation",
+    "logic_operator_precedence",
+    "logic_date_boundary",
     "perf_n_plus_one",
+    "logic_window_partition",
+    "logic_missing_having",
 ]
 
 # ---------------------------------------------------------------------------

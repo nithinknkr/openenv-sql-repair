@@ -1,10 +1,12 @@
 """
 Deterministic grader for SQL Repair environment.
 
-Tasks 1-4: Counter-based row-diff with float normalisation + column-name bonus.
-Task 5   : correctness × 0.6 + efficiency × 0.4
-           Efficiency is measured via EXPLAIN QUERY PLAN — correlated subqueries
-           show 'CORRELATED' in the plan text and score 0.0 efficiency.
+Tasks 1-2 (Easy syntax)  : row_diff_grade
+Tasks 3-4 (Medium logic) : row_diff_grade
+Task  5   (Hard perf)    : correctness × 0.6 + efficiency × 0.4
+                           Efficiency measured via EXPLAIN QUERY PLAN —
+                           correlated subqueries show 'CORRELATED' and score 0.0.
+Tasks 6-7 (Hard logic)   : row_diff_grade (wrong window / missing HAVING)
 """
 
 from __future__ import annotations

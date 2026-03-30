@@ -22,7 +22,8 @@ from server.grader import row_diff_grade, hard_grade
 # ---------------------------------------------------------------------------
 
 _TASKS_PATH = Path(__file__).resolve().parent.parent / "data" / "tasks.json"
-_HARD_TASK_ID = "perf_n_plus_one"
+# Tasks that use the combined correctness+efficiency grader
+_HARD_TASK_IDS = {"perf_n_plus_one", "logic_window_partition", "logic_missing_having"}
 
 # Destructive keyword pattern (mirrors sandbox blocklist)
 _DESTRUCTIVE_RE = re.compile(
@@ -81,7 +82,6 @@ class SQLRepairEnvironment:
         self.total_reward: float = 0.0
         self.is_done: bool = False
         self.current_score: float = 0.0
-        self.schema_visible: bool = False
         self._cached_schema: str = ""
         self._gold_rows: List[tuple] = []
         self._gold_cols: List[str] = []
@@ -119,8 +119,7 @@ class SQLRepairEnvironment:
         self.total_reward = 0.0
         self.is_done = False
         self.current_score = 0.0
-        self.schema_visible = False
-        self._cached_schema = "" 
+        self._cached_schema = ""
         self._session_id = session_id
 
         return self._build_observation(schema_info=None)
@@ -147,7 +146,6 @@ class SQLRepairEnvironment:
             if not self._cached_schema:
                 self._cached_schema = self.sandbox.get_schema_text()
             schema_info = self._cached_schema
-            self.schema_visible = True
 
         elif action.action_type == ActionType.view_error:
             pass  # last_error already in observation
@@ -165,11 +163,6 @@ class SQLRepairEnvironment:
         # Max steps exceeded
         if self.step_count >= (self.task or {}).get("max_steps", 15):
             self.is_done = True
-
-        if self.schema_visible and schema_info is None:
-            if not self._cached_schema:
-                self._cached_schema = self.sandbox.get_schema_text()
-            schema_info = self._cached_schema
 
         return SQLRepairStepResult(
             observation=self._build_observation(schema_info=schema_info),
@@ -254,7 +247,7 @@ class SQLRepairEnvironment:
 
         # Grade
         task_id = self.task["task_id"] if self.task else ""
-        if task_id == _HARD_TASK_ID:
+        if task_id in _HARD_TASK_IDS:
             score = hard_grade(rows, cols, self._gold_rows, self._gold_cols, self.sandbox, sql)
         else:
             score = row_diff_grade(rows, cols, self._gold_rows, self._gold_cols)
@@ -263,7 +256,11 @@ class SQLRepairEnvironment:
         return round(score * _REWARD_SUBMIT_MULT, 4) + loop_penalty
 
     def _build_observation(self, schema_info: Optional[str] = None) -> SQLRepairObservation:
-        """Construct the current observation for the agent."""
+        """Construct the current observation for the agent.
+
+        schema_info is only populated when the agent explicitly calls view_schema.
+        It is NOT persisted across steps to prevent free information leakage.
+        """
         task = self.task or {}
         return SQLRepairObservation(
             session_id=self._session_id,
@@ -271,7 +268,7 @@ class SQLRepairEnvironment:
             difficulty=task.get("difficulty", ""),
             description=task.get("description", ""),
             broken_query=task.get("broken_query", ""),
-            schema_info=schema_info or ("" if not self.schema_visible else self.sandbox.get_schema_text()),
+            schema_info=schema_info or "",  # Only shown when agent explicitly requests it
             last_query_result=self.last_result or None,
             execution_error=self.last_error,
             step_count=self.step_count,
