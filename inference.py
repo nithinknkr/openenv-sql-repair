@@ -30,9 +30,9 @@ from openai import OpenAI
 # Configuration (read from environment — NEVER hardcode secrets)
 # ---------------------------------------------------------------------------
 
-API_BASE_URL: str = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-API_KEY: str = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
-MODEL_NAME: str = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+API_KEY: str = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or "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"
+API_BASE_URL: str = os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1")
+MODEL_NAME: str = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
 SERVER_URL: str = os.getenv("SERVER_URL" , "http://localhost:7860")
 
 TEMPERATURE: float = 0.0      # Must be 0 for reproducibility
