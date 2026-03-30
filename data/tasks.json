@@ -30,70 +30,70 @@
     "task_id": "logic_operator_precedence",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
-    "description": "The query should find high-risk orders: those that are (cancelled OR pending) AND have a total_amount above $500. Due to SQL operator precedence (AND binds before OR), the current query returns ALL cancelled orders regardless of amount, plus only high-value pending orders. No error is raised — the results just silently include wrong rows. Fix the filter logic.",
+    "description": "This query is supposed to return delivered and shipped orders above a certain value but returns the wrong set of rows. Identify and fix the bug.",
     "broken_query": "SELECT id, user_id, status, total_amount FROM orders WHERE status = 'cancelled' OR status = 'pending' AND total_amount > 500.00 ORDER BY total_amount DESC;",
     "gold_query": "SELECT id, user_id, status, total_amount FROM orders WHERE (status = 'cancelled' OR status = 'pending') AND total_amount > 500.00 ORDER BY total_amount DESC;",
     "max_steps": 12,
-    "hints": [
-      "The query runs without error but returns incorrect rows.",
-      "SQL evaluates AND before OR — this can silently change which rows qualify.",
-      "Compare the row count from your query against what the description requires."
-    ]
+    "hints": []
   },
   {
     "task_id": "logic_date_boundary",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
-    "description": "The Q1 2025 order report should return ALL 25 orders in the system. However, the query silently drops the first 5 orders (placed January 5th through 18th) due to a wrong date filter. No error is raised — the result just has fewer rows than expected. Fix both the comparison operator and the date boundary to return all 25 orders.",
+    "description": "This query should return all orders from a specific date onwards but the row count does not match expectations. Fix it.",
     "broken_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) > '2025-01-18' ORDER BY created_at;",
     "gold_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) >= '2025-01-01' ORDER BY created_at;",
     "max_steps": 12,
-    "hints": [
-      "The query returns fewer rows than expected — inspect the WHERE clause carefully.",
-      "Run a COUNT(*) with no filter to see how many orders exist in total.",
-      "Both the comparison operator and the date value in the filter may need to change."
-    ]
+    "hints": []
   },
   {
     "task_id": "perf_n_plus_one",
     "difficulty": "Hard",
     "bug_type": "Performance Bug",
-    "description": "The correlated subquery in the SELECT clause executes once per product row (N+1 problem), which is extremely slow at scale. Rewrite the query to retrieve the same result set using a single SQL statement with no correlated subqueries. Products with no order items must show 0 (not NULL) for total_sold.",
+    "description": "This query returns correct results but becomes extremely slow as the products table grows. Fix the performance issue.",
     "broken_query": "SELECT id, name, (SELECT SUM(quantity) FROM order_items WHERE product_id = products.id) AS total_sold FROM products;",
     "gold_query": "SELECT products.id, products.name, COALESCE(SUM(order_items.quantity), 0) AS total_sold FROM products LEFT JOIN order_items ON products.id = order_items.product_id GROUP BY products.id, products.name;",
     "max_steps": 15,
     "hints": [
-      "Correlated subqueries in SELECT re-execute for every row in the outer query — avoid them.",
-      "A single-pass approach using aggregation can compute the same result more efficiently.",
-      "Products with zero sales must still appear in the output (handle the NULL case)."
+      "Consider how many times the database engine executes work for each row in the result."
     ]
   },
   {
     "task_id": "logic_window_partition",
     "difficulty": "Hard",
     "bug_type": "Logic Bug",
-    "description": "The query ranks products by price, but it ranks them globally across all 40 products instead of within each category. The query runs without error and returns the correct number of rows — but every rank value is wrong. Products should be ranked 1st, 2nd, 3rd etc. within their own category. Fix the window function so the rank resets per category.",
+    "description": "This query ranks products by price but the rankings appear incorrect. Fix the query.",
     "broken_query": "SELECT p.id, p.name, p.price, c.name AS category, RANK() OVER (ORDER BY p.price DESC) AS price_rank FROM products p JOIN categories c ON p.category_id = c.id ORDER BY c.name, price_rank;",
     "gold_query": "SELECT p.id, p.name, p.price, c.name AS category, RANK() OVER (PARTITION BY p.category_id ORDER BY p.price DESC) AS price_rank FROM products p JOIN categories c ON p.category_id = c.id ORDER BY c.name, price_rank;",
     "max_steps": 15,
     "hints": [
-      "The query executes without error and returns the correct number of rows.",
-      "Inspect the rank values — do they reset between categories or count globally?",
-      "Window functions support a clause that resets computation per group."
+      "The rankings look correct globally but may not reflect the intended grouping."
     ]
   },
   {
     "task_id": "logic_missing_having",
     "difficulty": "Hard",
     "bug_type": "Logic Bug",
-    "description": "The query should return only orders that contain more than one line item (multi-item orders). It joins orders, users, and order_items correctly and groups properly — but it returns ALL orders including single-item ones. The aggregation filter is missing. Fix the query to exclude single-item orders.",
+    "description": "This query should return only users who have placed more than one order but it returns too many rows. Fix it.",
     "broken_query": "SELECT o.id AS order_id, u.username, COUNT(oi.id) AS item_count, SUM(oi.quantity * oi.unit_price) AS order_total FROM orders o JOIN users u ON o.user_id = u.id JOIN order_items oi ON o.id = oi.order_id GROUP BY o.id, u.username ORDER BY item_count DESC;",
     "gold_query": "SELECT o.id AS order_id, u.username, COUNT(oi.id) AS item_count, SUM(oi.quantity * oi.unit_price) AS order_total FROM orders o JOIN users u ON o.user_id = u.id JOIN order_items oi ON o.id = oi.order_id GROUP BY o.id, u.username HAVING COUNT(oi.id) > 1 ORDER BY item_count DESC;",
     "max_steps": 15,
     "hints": [
-      "The query runs without error but returns more rows than expected.",
-      "You cannot filter on aggregated values (like COUNT) using a WHERE clause.",
-      "Run the broken query and compare its row count to what the description requires."
+      "The query returns more rows than expected. Think about where result filtering should happen."
+    ]
+  },
+  {
+    "task_id": "cascade_pipeline_bug",
+    "difficulty": "Hard",
+    "bug_type": "cascade",
+    "description": "A 3-step reporting pipeline is producing wrong revenue figures. The pipeline calculates per-category revenue using CTEs. Each step depends on the previous. Fix all broken steps so the final result matches the expected output.",
+    "broken_query": "WITH\nstep1 AS (\n    SELECT product_id, SUM(quantity) as total_qty\n    FROM order_items\n    GROUP BY order_id\n),\nstep2 AS (\n    SELECT p.category_id, s.total_qty, p.price\n    FROM products p\n    JOIN step1 s ON p.id = s.product_id\n),\nstep3 AS (\n    SELECT category_id, SUM(total_qty) as units_sold, SUM(total_qty * price) as revenue\n    FROM step2\n    GROUP BY category_id\n)\nSELECT c.name as category, s.units_sold, s.revenue\nFROM step3 s\nJOIN categories c ON s.category_id = c.id\nORDER BY s.revenue DESC;",
+    "gold_query": "WITH\nstep1 AS (\n    SELECT product_id, SUM(quantity) as total_qty\n    FROM order_items\n    GROUP BY product_id\n),\nstep2 AS (\n    SELECT p.category_id, s.total_qty, p.price\n    FROM products p\n    JOIN step1 s ON p.id = s.product_id\n),\nstep3 AS (\n    SELECT category_id, SUM(total_qty) as units_sold, SUM(total_qty * price) as revenue\n    FROM step2\n    GROUP BY category_id\n)\nSELECT c.name as category, s.units_sold, s.revenue\nFROM step3 s\nJOIN categories c ON s.category_id = c.id\nORDER BY s.revenue DESC;",
+    "max_steps": 20,
+    "hints": [
+      "Start by understanding what each step of the pipeline is supposed to produce before attempting any fix.",
+      "Run step1 in isolation first — does GROUP BY order_id make sense for computing per-product quantity totals?",
+      "The bug is in step1. Once step1 is wrong, every downstream step inherits the error."
     ]
   }
 ]

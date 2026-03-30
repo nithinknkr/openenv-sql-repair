@@ -47,6 +47,7 @@ observation_space:
     schema_info:        { type: string,  description: "DB schema DDL (null until view_schema is called)" }
     last_query_result:  { type: array,   description: "Rows returned by last run_query" }
     execution_error:    { type: string,  description: "SQLite error from last query" }
+    execution_time_ms:  { type: number,  description: "Execution time from last query in ms" }
     step_count:         { type: integer, description: "Steps taken so far" }
     max_steps:          { type: integer, description: "Maximum steps allowed" }
     hints:              { type: array,   description: "Optional hints for the agent" }
@@ -69,6 +70,9 @@ tasks:
   - id: perf_n_plus_one
     difficulty: hard
     bug_type: performance
+  - id: cascade_pipeline_bug
+    difficulty: hard
+    bug_type: cascade
 
 # ── Grader ────────────────────────────────────────────────────────────────────
 grader:

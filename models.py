@@ -80,6 +80,9 @@ class SQLRepairObservation(Observation):
     execution_error: Optional[str] = Field(
         None, description="Error encountered during the last run_query"
     )
+    execution_time_ms: Optional[float] = Field(
+        None, description="Execution time of the last query in milliseconds"
+    )
     step_count: int = Field(0, description="Number of steps taken so far")
     max_steps: int = Field(15, description="Maximum allowed steps for this task")
     hints: List[str] = Field(

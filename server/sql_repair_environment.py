@@ -77,6 +77,7 @@ class SQLRepairEnvironment:
         self.last_result: List[tuple] = []
         self.last_cols: List[str] = []
         self.last_error: Optional[str] = None
+        self.last_execution_time_ms: Optional[float] = None
         self.history: List[str] = []          # all queries attempted this episode
         self.submitted_queries: List[str] = [] # only submit_query calls
         self.total_reward: float = 0.0
@@ -114,6 +115,7 @@ class SQLRepairEnvironment:
         self.last_result = []
         self.last_cols = []
         self.last_error = None
+        self.last_execution_time_ms = None
         self.history = []
         self.submitted_queries = []
         self.total_reward = 0.0
@@ -201,7 +203,12 @@ class SQLRepairEnvironment:
         if sql and sql == self.current_query:
             return _REWARD_REPETITION
 
+        import time
+        t0 = time.perf_counter()
         rows, cols, err = self.sandbox.execute(sql)
+        t1 = time.perf_counter()
+        
+        self.last_execution_time_ms = (t1 - t0) * 1000.0
         self.current_query = sql
         self.last_result = rows
         self.last_cols = cols
@@ -231,7 +238,12 @@ class SQLRepairEnvironment:
         self.is_done = True
         self.submitted_queries.append(sql)
 
+        import time
+        t0 = time.perf_counter()
         rows, cols, err = self.sandbox.execute(sql)
+        t1 = time.perf_counter()
+        
+        self.last_execution_time_ms = (t1 - t0) * 1000.0
         self.last_result = rows
         self.last_cols = cols
         self.last_error = err
@@ -271,6 +283,7 @@ class SQLRepairEnvironment:
             schema_info=schema_info or "",  # Only shown when agent explicitly requests it
             last_query_result=self.last_result or None,
             execution_error=self.last_error,
+            execution_time_ms=self.last_execution_time_ms if task.get("task_id") == "perf_n_plus_one" else None,
             step_count=self.step_count,
             max_steps=task.get("max_steps", 15),
             hints=task.get("hints", []),

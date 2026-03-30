@@ -47,6 +47,7 @@ TASK_IDS = [
     "perf_n_plus_one",
     "logic_window_partition",
     "logic_missing_having",
+    "cascade_pipeline_bug",
 ]
 
 # ---------------------------------------------------------------------------
