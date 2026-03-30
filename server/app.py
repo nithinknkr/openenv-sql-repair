@@ -182,28 +182,34 @@ def schema():
 
 @app.get("/leaderboard")
 def leaderboard():
-    """Baseline scores for gpt-4o-mini and a random agent."""
+    """Baseline scores for llama-3.3-70b and a random agent."""
     return {
         "leaderboard": [
             {
-                "model": "gpt-4o-mini (temp=0)",
+                "model": "llama-3.3-70b-versatile (temp=0)",
                 "scores": {
-                    "syntax_missing_comma": 0.90,
-                    "syntax_ambiguous_column": 0.90,
-                    "logic_wrong_join": 0.45,
-                    "logic_wrong_aggregation": 0.50,
-                    "perf_n_plus_one": 0.28,
+                    "syntax_missing_comma": 1.000,
+                    "syntax_ambiguous_column": 1.000,
+                    "logic_operator_precedence": 1.000,
+                    "logic_date_boundary": 1.000,
+                    "perf_n_plus_one": 1.000,
+                    "logic_window_partition": 1.000,
+                    "logic_missing_having": 1.000,
+                    "cascade_pipeline_bug": 1.000,
                 },
-                "average": 0.61,
+                "average": 1.000,
             },
             {
                 "model": "random agent",
                 "scores": {
                     "syntax_missing_comma": 0.05,
                     "syntax_ambiguous_column": 0.03,
-                    "logic_wrong_join": 0.01,
-                    "logic_wrong_aggregation": 0.01,
+                    "logic_operator_precedence": 0.02,
+                    "logic_date_boundary": 0.02,
                     "perf_n_plus_one": 0.00,
+                    "logic_window_partition": 0.00,
+                    "logic_missing_having": 0.01,
+                    "cascade_pipeline_bug": 0.00,
                 },
                 "average": 0.02,
             },
