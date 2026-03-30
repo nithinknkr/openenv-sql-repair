@@ -82,6 +82,7 @@ class SQLRepairEnvironment:
         self.is_done: bool = False
         self.current_score: float = 0.0
         self.schema_visible: bool = False
+        self._cached_schema: str = ""
         self._gold_rows: List[tuple] = []
         self._gold_cols: List[str] = []
         self._session_id: str = ""
@@ -119,6 +120,7 @@ class SQLRepairEnvironment:
         self.is_done = False
         self.current_score = 0.0
         self.schema_visible = False
+        self._cached_schema = "" 
         self._session_id = session_id
 
         return self._build_observation(schema_info=None)
@@ -127,6 +129,7 @@ class SQLRepairEnvironment:
     # step()
     # ------------------------------------------------------------------
 
+
     def step(self, action: SQLRepairAction) -> SQLRepairStepResult:
         """Dispatch one agent action and return (observation, reward, done)."""
         if self.is_done:
@@ -134,14 +137,16 @@ class SQLRepairEnvironment:
                 observation=self._build_observation(),
                 reward=0.0,
                 done=True,
-            )
+        )  # step_count does NOT increment — episode is over
 
         reward = _REWARD_PER_STEP   # per-step tax
         schema_info: Optional[str] = None
 
         # ---- Dispatch ----
         if action.action_type == ActionType.view_schema:
-            schema_info = self.sandbox.get_schema_text()
+            if not self._cached_schema:
+                self._cached_schema = self.sandbox.get_schema_text()
+            schema_info = self._cached_schema
             self.schema_visible = True
 
         elif action.action_type == ActionType.view_error:
@@ -152,8 +157,9 @@ class SQLRepairEnvironment:
 
         elif action.action_type == ActionType.submit_query:
             reward += self._handle_submit_query(action.sql_query or "")
-
-        self.step_count += 1
+        
+        if not self.is_done:   # ← only increment if not already done
+            self.step_count += 1
         self.total_reward += reward
 
         # Max steps exceeded
@@ -161,7 +167,9 @@ class SQLRepairEnvironment:
             self.is_done = True
 
         if self.schema_visible and schema_info is None:
-            schema_info = self.sandbox.get_schema_text()
+            if not self._cached_schema:
+                self._cached_schema = self.sandbox.get_schema_text()
+            schema_info = self._cached_schema
 
         return SQLRepairStepResult(
             observation=self._build_observation(schema_info=schema_info),
@@ -211,11 +219,19 @@ class SQLRepairEnvironment:
             return 0.0
 
         if not rows:
-            return 0.0  # empty result — no reward farming
+            return 0.0
+
+        # Anti-exploit: check column count matches gold schema signature
+        # SELECT 1, SELECT 42 etc return wrong column count → no reward
+        if len(cols) != len(self._gold_cols):
+            return 0.0
 
         # Partial match reward
         partial = row_diff_grade(rows, cols, self._gold_rows, self._gold_cols)
+        if partial == 0.0:
+            return 0.0  # no reward for zero match — blocks SELECT 1 exploit
         return _REWARD_VALID_QUERY + _REWARD_PARTIAL_MULT * partial
+        
 
     def _handle_submit_query(self, sql: str) -> float:
         """Run the grader and finalize the episode."""

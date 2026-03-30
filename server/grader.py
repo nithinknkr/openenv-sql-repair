@@ -87,37 +87,70 @@ def row_diff_grade(
 # Efficiency scorer via EXPLAIN QUERY PLAN  (Task 5 only)
 # ---------------------------------------------------------------------------
 
+class _ExecutionCountProxy:
+    """Wraps a sqlite3.Connection and counts every cursor.execute() call."""
+
+    def __init__(self, conn) -> None:
+        self._conn = conn
+        self.count = 0
+
+    def execute(self, sql: str, params=()):
+        self.count += 1
+        return self._conn.execute(sql, params)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 def _get_efficiency_score(sandbox: "SQLSandbox", sql: str) -> float:
     """
-    Detect N+1 correlated subqueries using SQLite's EXPLAIN QUERY PLAN.
+    Measure N+1 anti-pattern by counting actual cursor.execute() calls.
 
-    SQLite ≥ 3.28 returns rows with columns (id, parent, notused, detail).
-    A correlated subquery shows 'CORRELATED' in the detail column.
+    The broken correlated subquery fires one inner SELECT per outer row
+    (N+1 total). The correct JOIN+GROUP BY fires exactly 1 statement.
 
     Score:
-      'CORRELATED' found  → 0.0   (N+1 anti-pattern)
-      1–2 table scans     → 1.0   (single JOIN — efficient)
-      3+ table scans      → 0.8   (acceptable overhead)
-      Error / unknown     → 0.5   (neutral)
+      count == 1     → 1.0  (optimal single-pass)
+      count <= 3     → 0.8  (minor overhead, acceptable)
+      count <= 10    → 0.5  (partial improvement)
+      count >  10    → 0.0  (still effectively N+1)
+      error          → 0.0  (broken query gets no efficiency credit)
     """
+    import sqlite3
+
     try:
-        rows, _cols, err = sandbox.execute(f"EXPLAIN QUERY PLAN {sql}")
-        if err or not rows:
-            return 0.5
+        conn = sqlite3.connect(":memory:", check_same_thread=False)
+        # Load schema into this fresh connection
+        schema_path = sandbox._DEFAULT_SCHEMA_PATH \
+            if hasattr(sandbox, "_DEFAULT_SCHEMA_PATH") \
+            else __import__("pathlib").Path(__file__).resolve().parent.parent / "data" / "schema.sql"
+        conn.executescript(
+            __import__("pathlib").Path(schema_path).read_text(encoding="utf-8")
+        )
 
-        # Last column is always the human-readable detail in SQLite
-        plan_text = " ".join(str(row[-1]).upper() for row in rows)
+        proxy = _ExecutionCountProxy(conn)
 
-        if "CORRELATED" in plan_text:
+        try:
+            cursor = proxy.execute(sql)
+            cursor.fetchall()
+        except sqlite3.Error:
+            conn.close()
             return 0.0
 
-        scan_count = plan_text.count("SCAN")
-        if scan_count <= 2:
-            return 1.0
+        count = proxy.count
+        conn.close()
 
-        return 0.8
+        if count <= 1:
+            return 1.0
+        elif count <= 3:
+            return 0.8
+        elif count <= 10:
+            return 0.5
+        else:
+            return 0.0
+
     except Exception:
-        return 0.5
+        return 0.0
 
 
 # ---------------------------------------------------------------------------

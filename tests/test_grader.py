@@ -171,21 +171,39 @@ class TestGraderScoring(unittest.TestCase):
         score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
         self.assertLess(score, 1.0)
 
-    def test_hard_task_single_join_efficiency(self) -> None:
+    def test_hard_task_single_join_scores_one(self) -> None:
+        """A single JOIN executes exactly 1 statement → efficiency 1.0"""
         sandbox = SQLSandbox()
         try:
-            sql = "SELECT users.username, orders.id FROM users LEFT JOIN orders ON users.id = orders.user_id;"
+            sql = (
+                "SELECT products.id, products.name, "
+                "COALESCE(SUM(order_items.quantity), 0) AS total_sold "
+                "FROM products "
+                "LEFT JOIN order_items ON products.id = order_items.product_id "
+                "GROUP BY products.id, products.name;"
+            )
             eff = _get_efficiency_score(sandbox, sql)
             self.assertEqual(eff, 1.0)
         finally:
             sandbox.close()
 
-    def test_hard_task_correlated_subquery_efficiency_zero(self) -> None:
+    def test_hard_task_correlated_subquery_scores_zero(self) -> None:
+        """Correlated subquery fires N+1 times → count > 10 → efficiency 0.0"""
         sandbox = SQLSandbox()
         try:
             sql = _TASKS["perf_n_plus_one"]["broken_query"]
             eff = _get_efficiency_score(sandbox, sql)
             self.assertEqual(eff, 0.0)
+        finally:
+            sandbox.close()
+
+    def test_hard_task_statement_count_determinism(self) -> None:
+        """Same query must return identical efficiency score across 10 runs."""
+        sandbox = SQLSandbox()
+        try:
+            sql = _TASKS["perf_n_plus_one"]["broken_query"]
+            scores = [_get_efficiency_score(sandbox, sql) for _ in range(10)]
+            self.assertTrue(all(s == scores[0] for s in scores))
         finally:
             sandbox.close()
 

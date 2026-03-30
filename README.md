@@ -65,13 +65,16 @@ step(submit_query)  →  Agent submits final answer → grader scores 0.0–1.0 
 
 ## The 5 Tasks
 
-| Task ID | Difficulty | Bug Type | Expected Score |
+| Task ID | Difficulty | Bug Type | What Makes It Hard | Expected Score |
 |---|---|---|---|
-| `syntax_missing_comma`     | Easy   | Syntax      | ~1.00 |
-| `syntax_ambiguous_column`  | Easy   | Syntax      | ~1.00 |
-| `logic_wrong_join` | Medium | Logic | ~0.45 |
-| `logic_wrong_aggregation` | Medium | Logic | ~0.50 |
-| `perf_n_plus_one` | Hard | Performance | ~0.28 |
+| `syntax_missing_comma`     | Easy   | Syntax      | Missing commas between SELECT columns — query fails with a clear error | ~1.00 |
+| `syntax_ambiguous_column`  | Easy   | Syntax      | Ambiguous column reference across joined tables — agent must qualify with table prefix | ~1.00 |
+| `logic_wrong_join` | Medium | Logic | INNER JOIN silently excludes users with no orders — agent must identify missing rows | ~0.45 |
+| `logic_wrong_aggregation` | Medium | Logic | COUNT(*) used instead of SUM(total_amount) — query runs but produces wrong results | ~0.50 |
+| `perf_n_plus_one` | Hard | Performance | Correlated subquery fires once per row — agent must rewrite as single JOIN + GROUP BY | ~0.28 |
+
+
+
 
 ---
 
@@ -86,6 +89,19 @@ step(submit_query)  →  Agent submits final answer → grader scores 0.0–1.0 
 | Same query repeated | −0.05 |
 | Destructive keyword (DROP, etc.) | −0.30 |
 | `submit_query` final score G | G × 0.70 |
+
+## Grader Design
+
+**Tasks 1–4:** Counter-based multiset row diff with float normalisation and +0.10 column-name bonus. Fully deterministic across all SQLite versions.
+
+**Task 5 (perf_n_plus_one):** correctness × 0.6 + efficiency × 0.4. Efficiency is measured via `_ExecutionCountProxy` — counts actual `cursor.execute()` calls on a fresh in-memory connection. This is SQLite-version-independent (unlike `EXPLAIN QUERY PLAN` whose output format varies):
+
+| Execute count | Efficiency score |
+|---|---|
+| == 1 | 1.0 — optimal single-pass JOIN |
+| ≤ 3 | 0.8 — minor overhead |
+| ≤ 10 | 0.5 — partial improvement |
+| > 10 | 0.0 — still N+1 |
 
 ---
 
@@ -120,7 +136,7 @@ docker run -p 7860:7860 -e HF_TOKEN=hf_... -e MODEL_NAME=Qwen/Qwen2.5-72B-Instru
 | Task | Score |
 |---|---|
 | syntax_missing_comma | 1.000 |
-| syntax_wrong_keyword | 1.000 |
+| syntax_ambiguous_column | 1.000 |
 | logic_wrong_join | 1.000 |
 | logic_wrong_aggregation | 1.000 |
 | perf_n_plus_one | 1.000 |
