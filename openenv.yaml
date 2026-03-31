@@ -55,24 +55,30 @@ observation_space:
 
 # ── Tasks ─────────────────────────────────────────────────────────────────────
 tasks:
-  - id: syntax_missing_comma
-    difficulty: easy
-    bug_type: syntax
-  - id: syntax_ambiguous_column
-    difficulty: easy
-    bug_type: syntax
-  - id: logic_wrong_join
-    difficulty: medium
-    bug_type: logic
-  - id: logic_wrong_aggregation
-    difficulty: medium
-    bug_type: logic
-  - id: perf_n_plus_one
-    difficulty: hard
-    bug_type: performance
-  - id: cascade_pipeline_bug
-    difficulty: hard
-    bug_type: cascade
+- id: syntax_missing_comma
+  difficulty: easy
+  bug_type: syntax
+- id: syntax_ambiguous_column
+  difficulty: easy
+  bug_type: syntax
+- id: logic_operator_precedence
+  difficulty: medium
+  bug_type: logic
+- id: logic_date_boundary
+  difficulty: medium
+  bug_type: logic
+- id: perf_n_plus_one
+  difficulty: hard
+  bug_type: performance
+- id: logic_window_partition
+  difficulty: hard
+  bug_type: logic 
+- id: logic_missing_having
+  difficulty: hard
+  bug_type: logic
+- id: cascade_pipeline_bug
+  difficulty: hard
+  bug_type: cascade
 
 # ── Grader ────────────────────────────────────────────────────────────────────
 grader:

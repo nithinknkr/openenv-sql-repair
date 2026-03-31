@@ -41,7 +41,7 @@
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
     "description": "This query should return all orders from a specific date onwards but the row count does not match expectations. Fix it.",
-    "broken_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) > '2025-01-18' ORDER BY created_at;",
+    "broken_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) > '2025-02-15' ORDER BY created_at;",
     "gold_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) >= '2025-01-01' ORDER BY created_at;",
     "max_steps": 12,
     "hints": []

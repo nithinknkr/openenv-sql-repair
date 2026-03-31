@@ -73,7 +73,7 @@ def row_diff_grade(
             gold_counter[row] -= 1
             matched += 1
 
-    ratio = matched / len(gold_rows)
+    ratio = matched / max(len(gold_rows), len(submitted_rows))
 
     bonus = 0.0
     if include_column_bonus:
@@ -105,54 +105,19 @@ class _ExecutionCountProxy:
 
 
 def _get_efficiency_score(sandbox: "SQLSandbox", sql: str) -> float:
-    """
-    Measure N+1 anti-pattern by counting actual cursor.execute() calls.
-
-    The broken correlated subquery fires one inner SELECT per outer row
-    (N+1 total). The correct JOIN+GROUP BY fires exactly 1 statement.
-
-    Score:
-      count == 1     → 1.0  (optimal single-pass)
-      count <= 3     → 0.8  (minor overhead, acceptable)
-      count <= 10    → 0.5  (partial improvement)
-      count >  10    → 0.0  (still effectively N+1)
-      error          → 0.0  (broken query gets no efficiency credit)
-    """
-    import sqlite3
-
     try:
-        conn = sqlite3.connect(":memory:", check_same_thread=False)
-        # Load schema into this fresh connection
-        schema_path = sandbox._DEFAULT_SCHEMA_PATH \
-            if hasattr(sandbox, "_DEFAULT_SCHEMA_PATH") \
-            else __import__("pathlib").Path(__file__).resolve().parent.parent / "data" / "schema.sql"
-        conn.executescript(
-            __import__("pathlib").Path(schema_path).read_text(encoding="utf-8")
-        )
-
-        proxy = _ExecutionCountProxy(conn)
-
-        try:
-            cursor = proxy.execute(sql)
-            cursor.fetchall()
-        except sqlite3.Error:
-            conn.close()
-            return 0.0
-
-        count = proxy.count
-        conn.close()
-
-        if count <= 1:
-            return 1.0
-        elif count <= 3:
-            return 0.8
-        elif count <= 10:
+        rows, _cols, err = sandbox.execute(f"EXPLAIN QUERY PLAN {sql}")
+        if err or not rows:
             return 0.5
-        else:
-            return 0.0
-
+        plan_text = " ".join(str(row[-1]).upper() for row in rows)
+        if "CORRELATED" in plan_text:
+            return 0.0 # N+1 confirmed
+        scan_count = plan_text.count("SCAN")
+        if scan_count <= 2:
+            return 1.0 # single JOIN pass
+        return 0.8
     except Exception:
-        return 0.0
+        return 0.5
 
 
 # ---------------------------------------------------------------------------

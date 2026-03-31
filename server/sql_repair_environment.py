@@ -23,7 +23,7 @@ from server.grader import row_diff_grade, hard_grade
 
 _TASKS_PATH = Path(__file__).resolve().parent.parent / "data" / "tasks.json"
 # Tasks that use the combined correctness+efficiency grader
-_HARD_TASK_IDS = {"perf_n_plus_one", "logic_window_partition", "logic_missing_having"}
+_HARD_TASK_IDS = {"perf_n_plus_one"} # Only N+1 task uses efficiency scoring
 
 # Destructive keyword pattern (mirrors sandbox blocklist)
 _DESTRUCTIVE_RE = re.compile(
