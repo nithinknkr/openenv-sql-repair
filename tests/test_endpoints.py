@@ -67,15 +67,15 @@ def test_reset_endpoint_with_specific_task():
 # Test: GET /tasks
 # ============================================================================
 
-def test_tasks_endpoint_returns_five_tasks():
-    """Test GET /tasks returns exactly 5 tasks."""
+def test_tasks_endpoint_returns_eight_tasks():
+    """Test GET /tasks returns exactly 8 tasks."""
     response = client.get("/tasks")
     assert response.status_code == 200
     data = response.json()
     assert "tasks" in data
     assert isinstance(data["tasks"], list)
-    assert len(data["tasks"]) == 5, "Should return exactly 5 tasks"
-    assert data["count"] == 5
+    assert len(data["tasks"]) == 8, "Should return exactly 8 tasks"
+    assert data["count"] == 8
 
 
 def test_tasks_endpoint_schema_structure():
@@ -91,7 +91,7 @@ def test_tasks_endpoint_schema_structure():
 
 
 def test_tasks_endpoint_all_tasks_present():
-    """Verify all 5 required task IDs are present."""
+    """Verify all 8 required task IDs are present."""
     response = client.get("/tasks")
     assert response.status_code == 200
     data = response.json()
@@ -100,9 +100,12 @@ def test_tasks_endpoint_all_tasks_present():
     expected_task_ids = {
         "syntax_missing_comma",
         "syntax_ambiguous_column",
-        "logic_wrong_join",
-        "logic_wrong_aggregation",
+        "logic_operator_precedence",
+        "logic_date_boundary",
         "perf_n_plus_one",
+        "logic_window_partition",
+        "logic_missing_having",
+        "cascade_pipeline_bug",
     }
     assert task_ids == expected_task_ids
 

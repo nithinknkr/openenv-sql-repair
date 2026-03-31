@@ -18,7 +18,7 @@ def test_full_episode_submit_query_marks_done():
     )
     assert result.done is True
     assert env.state().is_done is True
-    assert env.state().step_count == 3
+    assert env.state().step_count == 2
 
 
 def test_max_steps_enforced_marks_done_when_exceeded():
@@ -87,7 +87,8 @@ def test_empty_query_guard_select_one_no_partial_progress_reward():
 
     result = env.step(SQLRepairAction(action_type=ActionType.run_query, sql_query="SELECT 1;"))
     # row_diff should not produce partial reward for a generic constant query
-    assert pytest.approx(result.reward, rel=1e-6) == 0.04
+    # SELECT 1 has 1 column vs gold query's 3 columns, so returns 0 reward (just per-step tax)
+    assert pytest.approx(result.reward, rel=1e-6) == -0.01
 
 
 def test_reward_accumulation_equals_per_step_sum():

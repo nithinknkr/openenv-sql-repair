@@ -264,6 +264,16 @@ class TestNewTaskGrading(unittest.TestCase):
         gold_score, broken_score = self._gold_vs_broken("logic_missing_having")
         self.assertLess(broken_score, 1.0)
 
+    def test_cascade_pipeline_bug_gold_scores_one(self) -> None:
+        """Gold query for cascade bug task must score 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("cascade_pipeline_bug")
+        self.assertEqual(gold_score, 1.0)
+
+    def test_cascade_pipeline_bug_broken_scores_below_one(self) -> None:
+        """Broken query (wrong GROUP BY) returns incorrect aggregates → score < 1.0."""
+        gold_score, broken_score = self._gold_vs_broken("cascade_pipeline_bug")
+        self.assertLess(broken_score, 1.0)
+
     def test_all_gold_queries_execute_without_error(self) -> None:
         """Every gold query in tasks.json must execute cleanly in the sandbox."""
         sandbox = SQLSandbox()

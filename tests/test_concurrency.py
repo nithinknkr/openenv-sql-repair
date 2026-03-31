@@ -270,14 +270,17 @@ def test_parallel_steps_same_session_thread_safe():
 
 def test_session_isolation_with_different_task_ids():
     """
-    Test that creating 5 sessions with different task IDs keeps them isolated.
+    Test that creating 8 sessions with different task IDs keeps them isolated.
     """
     task_ids = [
         "syntax_missing_comma",
         "syntax_ambiguous_column",
-        "logic_wrong_join",
-        "logic_wrong_aggregation",
+        "logic_operator_precedence",
+        "logic_date_boundary",
         "perf_n_plus_one",
+        "logic_window_partition",
+        "logic_missing_having",
+        "cascade_pipeline_bug",
     ]
     
     sessions = {}
