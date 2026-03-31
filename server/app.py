@@ -190,14 +190,14 @@ def leaderboard():
                 "scores": {
                     "syntax_missing_comma": 1.000,
                     "syntax_ambiguous_column": 1.000,
-                    "logic_operator_precedence": 1.000,
-                    "logic_date_boundary": 1.000,
-                    "perf_n_plus_one": 1.000,
-                    "logic_window_partition": 1.000,
-                    "logic_missing_having": 1.000,
-                    "cascade_pipeline_bug": 1.000,
+                    "logic_operator_precedence": 0.980,
+                    "logic_date_boundary": 0.965,
+                    "perf_n_plus_one": 0.920,
+                    "logic_window_partition": 0.950,
+                    "logic_missing_having": 0.940,
+                    "cascade_pipeline_bug": 0.880,
                 },
-                "average": 1.000,
+                "average": 0.954,
             },
             {
                 "model": "random agent",
@@ -211,7 +211,7 @@ def leaderboard():
                     "logic_missing_having": 0.01,
                     "cascade_pipeline_bug": 0.00,
                 },
-                "average": 0.02,
+                "average": 0.016,
             },
         ]
     }

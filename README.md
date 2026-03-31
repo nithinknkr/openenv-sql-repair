@@ -63,15 +63,18 @@ step(submit_query)  →  Agent submits final answer → grader scores 0.0–1.0 
 
 ---
 
-## The 5 Tasks
+## The 8 Tasks
 
 | Task ID | Difficulty | Bug Type | What Makes It Hard | Expected Score |
-|---|---|---|---|
+|---|---|---|---|---|
 | `syntax_missing_comma`     | Easy   | Syntax      | Missing commas between SELECT columns — query fails with a clear error | ~1.00 |
 | `syntax_ambiguous_column`  | Easy   | Syntax      | Ambiguous column reference across joined tables — agent must qualify with table prefix | ~1.00 |
-| `logic_wrong_join` | Medium | Logic | INNER JOIN silently excludes users with no orders — agent must identify missing rows | ~0.45 |
-| `logic_wrong_aggregation` | Medium | Logic | COUNT(*) used instead of SUM(total_amount) — query runs but produces wrong results | ~0.50 |
-| `perf_n_plus_one` | Hard | Performance | Correlated subquery fires once per row — agent must rewrite as single JOIN + GROUP BY | ~0.28 |
+| `logic_operator_precedence`| Medium | Logic       | Misplaced OR/AND logic — agent must add parentheses to correct the precedence | ~0.98 |
+| `logic_date_boundary`      | Medium | Logic       | Wrong comparison operator or date filter — agent must adjust for inclusive ranges | ~0.96 |
+| `perf_n_plus_one`          | Hard   | Performance | Correlated subquery fires once per row — agent must rewrite as single JOIN + GROUP BY | ~0.92 |
+| `logic_window_partition`   | Hard   | Logic       | Global ranking instead of per-category — agent must add PARTITION BY to window function | ~0.95 |
+| `logic_missing_having`     | Hard   | Logic       | Filtering groups using WHERE instead of HAVING — agent must identify correct aggregation filter | ~0.94 |
+| `cascade_pipeline_bug`     | Hard   | Cascade     | Error in early CTE step propagates downstream — agent must trace through the entire logical pipeline | ~0.88 |
 
 
 
@@ -131,13 +134,16 @@ docker run -p 7860:7860 -e HF_TOKEN=hf_... -e MODEL_NAME=Qwen/Qwen2.5-72B-Instru
 
 ## Baseline Scores
 
-*(Recorded with Qwen/Qwen2.5-72B-Instruct, temperature=0)*
+*(Recorded with llama-3.3-70b-versatile, temperature=0)*
 
 | Task | Score |
 |---|---|
 | syntax_missing_comma | 1.000 |
 | syntax_ambiguous_column | 1.000 |
-| logic_wrong_join | 1.000 |
-| logic_wrong_aggregation | 1.000 |
-| perf_n_plus_one | 1.000 |
-| **Average** | **1.000** |
+| logic_operator_precedence | 0.980 |
+| logic_date_boundary | 0.965 |
+| perf_n_plus_one | 0.920 |
+| logic_window_partition | 0.950 |
+| logic_missing_having | 0.940 |
+| cascade_pipeline_bug | 0.880 |
+| **Average** | **0.954** |
