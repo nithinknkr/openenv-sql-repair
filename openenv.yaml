@@ -86,4 +86,4 @@ grader:
   score_range: [0.0, 1.0]
   method: >
     Tasks 1-4: Counter-based row diff with float normalisation and column-name bonus.
-    Task 5: correctness × 0.6 + efficiency × 0.4 (ExecutionCountProxy detects N+1).
+    Task 5: correctness × 0.6 + efficiency × 0.4 (EXPLAIN QUERY PLAN detects N+1 correlated subqueries)

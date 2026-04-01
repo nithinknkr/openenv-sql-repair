@@ -88,22 +88,6 @@ def row_diff_grade(
 # ---------------------------------------------------------------------------
 # Efficiency scorer via EXPLAIN QUERY PLAN  (Task 5 only)
 # ---------------------------------------------------------------------------
-
-class _ExecutionCountProxy:
-    """Wraps a sqlite3.Connection and counts every cursor.execute() call."""
-
-    def __init__(self, conn) -> None:
-        self._conn = conn
-        self.count = 0
-
-    def execute(self, sql: str, params=()):
-        self.count += 1
-        return self._conn.execute(sql, params)
-
-    def __getattr__(self, name):
-        return getattr(self._conn, name)
-
-
 def _get_efficiency_score(sandbox: "SQLSandbox", sql: str) -> float:
     try:
         rows, _cols, err = sandbox.execute(f"EXPLAIN QUERY PLAN {sql}")
