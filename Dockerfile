@@ -10,12 +10,12 @@ ENV PATH="/home/user/.local/bin:$PATH"
 WORKDIR /app
 
 # Install dependencies (single source of truth: pyproject.toml)
-COPY --chown=user pyproject.toml .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir fastapi "uvicorn[standard]" pydantic openai httpx openenv
-
-# Copy all project files
+# Copy all project files first (needed for pip install . to find pyproject.toml)
 COPY --chown=user . /app
+
+# Install from pyproject.toml — single source of truth, picks up ALL dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir .
 
 # Verify SQLite is available (built into Python stdlib)
 RUN python -c "import sqlite3; print('SQLite OK:', sqlite3.sqlite_version)"
@@ -24,4 +24,4 @@ RUN python -c "import sqlite3; print('SQLite OK:', sqlite3.sqlite_version)"
 EXPOSE 7860
 
 # Start FastAPI server
-CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "1"]

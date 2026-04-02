@@ -97,14 +97,14 @@ step(submit_query)  →  Agent submits final answer → grader scores 0.0–1.0 
 
 **Tasks 1–4:** Counter-based multiset row diff with float normalisation and +0.10 column-name bonus. Fully deterministic across all SQLite versions.
 
-**Task 5 (perf_n_plus_one):** correctness × 0.6 + efficiency × 0.4. Efficiency is measured via `_ExecutionCountProxy` — counts actual `cursor.execute()` calls on a fresh in-memory connection. This is SQLite-version-independent (unlike `EXPLAIN QUERY PLAN` whose output format varies):
+**Task 5 (perf_n_plus_one):** correctness × 0.6 + efficiency × 0.4. Efficiency is measured via SQLite's `EXPLAIN QUERY PLAN` — correlated subqueries show `CORRELATED SCALAR SUBQUERY` in the plan text and score 0.0 efficiency. This is deterministic across all SQLite versions shipped with Python 3.11+:
 
-| Execute count | Efficiency score |
+| Plan result | Efficiency score |
 |---|---|
-| == 1 | 1.0 — optimal single-pass JOIN |
-| ≤ 3 | 0.8 — minor overhead |
-| ≤ 10 | 0.5 — partial improvement |
-| > 10 | 0.0 — still N+1 |
+| `CORRELATED` in plan text | 0.0 — N+1 anti-pattern confirmed |
+| ≤ 2 table scans, no CORRELATED | 1.0 — optimal single-pass JOIN |
+| 3+ table scans | 0.8 — minor overhead, acceptable |
+| Error / unreadable plan | 0.5 — neutral fallback |
 
 ---
 

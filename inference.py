@@ -1,7 +1,7 @@
 """
 SQL Auto-Repair OpenEnv — Baseline Inference Script
 ====================================================
-Uses a ReAct loop (Reason → Act → Observe) against all 7 tasks.
+Uses a ReAct loop (Reason → Act → Observe) against all 8 tasks.
 
 Environment variables:
     API_BASE_URL  — LLM API base URL  (default: https://api.groq.com/openai/v1)

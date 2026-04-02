@@ -30,7 +30,7 @@
     "task_id": "logic_operator_precedence",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
-    "description": "This query is supposed to return delivered and shipped orders above a certain value but returns the wrong set of rows. Identify and fix the bug.",
+    "description": "This query is supposed to return only high-value cancelled or pending orders, but due to operator precedence the AND binds tighter than OR and the condition evaluates incorrectly. Add parentheses around the OR condition to fix the logic.",
     "broken_query": "SELECT id, user_id, status, total_amount FROM orders WHERE status = 'cancelled' OR status = 'pending' AND total_amount > 500.00 ORDER BY total_amount DESC;",
     "gold_query": "SELECT id, user_id, status, total_amount FROM orders WHERE (status = 'cancelled' OR status = 'pending') AND total_amount > 500.00 ORDER BY total_amount DESC;",
     "max_steps": 12,

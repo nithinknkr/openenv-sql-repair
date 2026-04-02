@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
@@ -70,16 +71,20 @@ def health():
     return {"status": "ok", "version": "1.0.0"}
 
 
+class ResetRequest(BaseModel):
+    task_id: Optional[str] = None
+
+
 @app.post("/reset")
-def reset(task_id: Optional[str] = None, body: dict = {}):
+def reset(task_id: Optional[str] = None, body: ResetRequest = None):
     """
     Start a new episode.
 
     Body (optional): {"task_id": "syntax_missing_comma"}
     Returns SQLRepairObservation with session_id.
     """
-    # Accept task_id from body OR query param
-    tid = task_id or (body.get("task_id") if body else None)
+    # Accept task_id from query param OR request body
+    tid = task_id or (body.task_id if body else None)
 
     env = SQLRepairEnvironment()
     session_id = session_manager.create_session(env)
@@ -109,7 +114,7 @@ def state(session_id: str = Query(...)):
 
 @app.get("/tasks")
 def tasks():
-    """List all 5 tasks and the full action schema."""
+    """List all 8 tasks and the full action schema."""
     task_list = list(_TASKS.values())
     return {
         "tasks": task_list,
