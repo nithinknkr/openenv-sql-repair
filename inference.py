@@ -182,33 +182,24 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    print(f"\n{'='*60}")
-    print(f"SQL Auto-Repair OpenEnv — Baseline Inference")
-    print(f"Model   : {MODEL_NAME}")
-    print(f"Server  : {SERVER_URL}")
-    print(f"{'='*60}\n")
+    # Allow single task via: python inference.py syntax_missing_comma
+    task_filter = sys.argv[1] if len(sys.argv) > 1 else None
+    task_ids_to_run = [task_filter] if task_filter else TASK_IDS
+
+    print(f"[START]")
+    print(f"Model : {MODEL_NAME}")
+    print(f"Server : {SERVER_URL}")
 
     scores: dict[str, float] = {}
-    total_start = time.time()
 
-    for task_id in TASK_IDS:
-        print(f"Running task: {task_id} ...", end=" ", flush=True)
+    for task_id in task_ids_to_run:
         t0 = time.time()
         score = run_task(task_id)
         elapsed = time.time() - t0
         scores[task_id] = score
-        print(f"score={score:.3f}  ({elapsed:.1f}s)")
+        print(f" {task_id}: score={score:.3f} ({elapsed:.1f}s)")
 
-    avg = sum(scores.values()) / len(scores)
-    total_elapsed = time.time() - total_start
-
-    print(f"\n{'='*60}")
-    print("Results:")
-    for tid, s in scores.items():
-        print(f"  {tid:<35} {s:.3f}")
-    print(f"  {'Average':<35} {avg:.3f}")
-    print(f"\nTotal runtime: {total_elapsed:.1f}s")
-    print(f"{'='*60}\n")
+    print(f"[END]")
 
 
 if __name__ == "__main__":
