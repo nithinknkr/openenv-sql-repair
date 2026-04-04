@@ -36,7 +36,7 @@
     "max_steps": 12,
     "hints": []
   },
-  {
+ {
     "task_id": "logic_date_boundary",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
@@ -44,7 +44,10 @@
     "broken_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) > '2025-02-15' ORDER BY created_at;",
     "gold_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) >= '2025-01-01' ORDER BY created_at;",
     "max_steps": 12,
-    "hints": []
+    "hints": [
+      "Check the row count — the query should return all orders for the entire year.",
+      "Both the comparison operator AND the date value may need to be changed."
+    ]
   },
   {
     "task_id": "perf_n_plus_one",
@@ -78,8 +81,9 @@
     "broken_query": "SELECT o.id AS order_id, u.username, COUNT(oi.id) AS item_count, SUM(oi.quantity * oi.unit_price) AS order_total FROM orders o JOIN users u ON o.user_id = u.id JOIN order_items oi ON o.id = oi.order_id GROUP BY o.id, u.username ORDER BY item_count DESC;",
     "gold_query": "SELECT o.id AS order_id, u.username, COUNT(oi.id) AS item_count, SUM(oi.quantity * oi.unit_price) AS order_total FROM orders o JOIN users u ON o.user_id = u.id JOIN order_items oi ON o.id = oi.order_id GROUP BY o.id, u.username HAVING COUNT(oi.id) > 1 ORDER BY item_count DESC;",
     "max_steps": 15,
-    "hints": [
-      "The query returns more rows than expected. Think about where result filtering should happen."
+   "hints": [
+      "The query returns more rows than expected. Think about where result filtering happens after GROUP BY.",
+      "You need a HAVING clause. The condition should filter for orders with more than one item."
     ]
   },
   {
