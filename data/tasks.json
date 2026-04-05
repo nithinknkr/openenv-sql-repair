@@ -73,7 +73,7 @@
       "The rankings look correct globally but may not reflect the intended grouping."
     ]
   },
-  {
+  { 
     "task_id": "logic_missing_having",
     "difficulty": "Hard",
     "bug_type": "Logic Bug",

@@ -30,7 +30,7 @@ from openai import OpenAI
 
 API_KEY: str = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("GROQ_API_KEY", "")
 API_BASE_URL: str = os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1")
-MODEL_NAME: str = os.getenv("MODEL_NAME", "llama-3.1-8b-instant")
+MODEL_NAME: str = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
 SERVER_URL: str = os.getenv("SERVER_URL" , "http://localhost:7860")
 
 TEMPERATURE: float = 0.0      # Must be 0 for reproducibility
