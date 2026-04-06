@@ -226,3 +226,15 @@ def leaderboard():
             },
         ]
     }
+
+
+def main():
+    """CLI entrypoint for openenv validate."""
+    import uvicorn
+    port = int(os.environ.get("PORT", 7860))
+    host = os.environ.get("HOST", "0.0.0.0")
+    uvicorn.run("server.app:app", host=host, port=port)
+
+
+if __name__ == "__main__":
+    main()
