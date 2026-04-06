@@ -67,8 +67,8 @@ def root():
 
 @app.get("/health")
 def health():
-    """Automated ping target — must return 200."""
-    return {"status": "ok", "version": "1.0.0"}
+    """Automated ping target — must return 200 with status=healthy."""
+    return {"status": "healthy", "version": "1.0.0"}
 
 
 class ResetRequest(BaseModel):
@@ -181,14 +181,60 @@ def baseline():
 # Bonus endpoints (impress judges)
 # ---------------------------------------------------------------------------
 
+@app.get("/metadata")
+def metadata():
+    """Return environment metadata (required by openenv validate)."""
+    return {
+        "name": "sql-auto-repair",
+        "description": (
+            "A reinforcement-learning environment where an agent iteratively repairs "
+            "broken SQL queries against a sandboxed SQLite e-commerce database. "
+            "The agent must explore the schema, run candidate fixes, and submit a "
+            "corrected query — all evaluated by a deterministic row-diff grader."
+        ),
+        "version": "1.0.0",
+        "author": "Q-Agents (Monish + Nithin)",
+        "tasks_count": len(_TASKS),
+    }
+
+
 @app.get("/schema")
 def schema():
+    """Return action, observation, and state schemas (required by openenv validate)."""
+    from models import SQLRepairAction, SQLRepairObservation, SQLRepairState
+    return {
+        "action": SQLRepairAction.model_json_schema(),
+        "observation": SQLRepairObservation.model_json_schema(),
+        "state": SQLRepairState.model_json_schema(),
+    }
+
+
+@app.get("/db-schema")
+def db_schema():
     """Return the full e-commerce DB schema DDL."""
     from server.sandbox import SQLSandbox
     sb = SQLSandbox()
     ddl = sb.get_schema_text()
     sb.close()
     return {"schema": ddl}
+
+
+@app.post("/mcp")
+def mcp():
+    """MCP (Model Context Protocol) endpoint — required by openenv validate."""
+    return {
+        "jsonrpc": "2.0",
+        "id": None,
+        "result": {
+            "name": "sql-auto-repair",
+            "description": "SQL Auto-Repair OpenEnv environment tools",
+            "tools": [
+                {"name": "reset", "description": "Start a new episode"},
+                {"name": "step", "description": "Take one action in the environment"},
+                {"name": "state", "description": "Get current environment state"},
+            ],
+        },
+    }
 
 
 @app.get("/leaderboard")
