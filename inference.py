@@ -1,17 +1,3 @@
-"""
-SQL Auto-Repair OpenEnv — Baseline Inference Script
-====================================================
-Uses a ReAct loop (Reason → Act → Observe) against all 8 tasks.
-
-Environment variables:
-    API_BASE_URL  — LLM API base URL  (default: https://api.groq.com/openai/v1)
-    MODEL_NAME    — model identifier  (default: llama-3.3-70b-versatile)
-    OPENAI_API_KEY / HF_TOKEN — API key
-    SERVER_URL    — environment server (default: http://localhost:7860)
-
-Usage:
-    python inference.py
-"""
 
 from __future__ import annotations
 
