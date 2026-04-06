@@ -158,8 +158,7 @@ class SQLRepairEnvironment:
         elif action.action_type == ActionType.submit_query:
             reward += self._handle_submit_query(action.sql_query or "")
         
-        if not self.is_done:   # ← only increment if not already done
-            self.step_count += 1
+        self.step_count += 1
         self.total_reward += reward
 
         # Max steps exceeded
