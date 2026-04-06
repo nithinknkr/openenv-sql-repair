@@ -134,16 +134,20 @@ docker run -p 7860:7860 -e HF_TOKEN=hf_... -e MODEL_NAME=Qwen/Qwen2.5-72B-Instru
 
 ## Baseline Scores
 
-*(Recorded with llama-3.3-70b-versatile, temperature=0)*
+*Estimated for llama-3.3-70b-versatile.
+Actual reproducible run: llama-3.1-8b-instant
+achieved 0.948 avg (all 8 tasks). The 70b run
+achieved 0.823 avg due to HAVING threshold
+sensitivity on logic_missing_having.*
 
 | Task | Score |
 |---|---|
 | syntax_missing_comma | 1.000 |
 | syntax_ambiguous_column | 1.000 |
-| logic_operator_precedence | 0.980 |
-| logic_date_boundary | 0.965 |
-| perf_n_plus_one | 0.920 |
-| logic_window_partition | 0.950 |
-| logic_missing_having | 0.940 |
-| cascade_pipeline_bug | 0.880 |
-| **Average** | **0.954** |
+| logic_operator_precedence | 1.000 |
+| logic_date_boundary | 0.580 |
+| perf_n_plus_one | 1.000 |
+| logic_window_partition | 1.000 |
+| logic_missing_having | 0.000 |
+| cascade_pipeline_bug | 1.000 |
+| **Average** | **0.823** |

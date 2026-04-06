@@ -112,15 +112,10 @@ def state(session_id: str = Query(...)):
     return env.state().model_dump()
 
 
-class CloseRequest(BaseModel):
-    session_id: str
-
-
 @app.post("/close")
-def close_session(body: CloseRequest):
-    """Explicitly delete a session."""
-    session_manager.delete_session(body.session_id)
-    return {"status": "ok"}
+def close(session_id: str = Query(...)):
+    session_manager.delete_session(session_id)
+    return {"status": "closed"}
 
 
 @app.get("/tasks")
