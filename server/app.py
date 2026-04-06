@@ -159,8 +159,8 @@ def grader(session_id: str = Query(...)):
 @app.get("/baseline")
 def baseline():
     """
-    Run the baseline inference agent against all 5 tasks.
-    Requires HF_TOKEN / OPENAI_API_KEY and MODEL_NAME to be set.
+    Run the baseline inference agent against all 8 tasks.
+    Requires HF_TOKEN / OPENAI_API_KEY / GROQ_API_KEY and MODEL_NAME to be set.
     """
     try:
         import inference  # inference.py at repo root
