@@ -1,6 +1,6 @@
 # Read the doc: https://huggingface.co/docs/hub/spaces-sdks-docker
 
-FROM python:3.11-slim
+FROM python:3.11.11-slim-bookworm
 
 # HuggingFace Spaces requires a non-root user with uid=1000
 RUN useradd -m -u 1000 user
