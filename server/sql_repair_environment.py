@@ -254,7 +254,7 @@ class SQLRepairEnvironment:
 
         if err or not rows:
             self.current_score = _SCORE_MIN
-            return loop_penalty
+            return _SCORE_MIN + loop_penalty  # never returns raw 0.0 (_SCORE_MIN=0.01)
 
         # Grade
         task_id = self.task["task_id"] if self.task else ""
