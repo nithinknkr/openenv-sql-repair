@@ -45,8 +45,8 @@ def _normalize(rows: List[tuple]) -> List[tuple]:
 # Score clamping — validator requires strictly (0, 1)
 # ---------------------------------------------------------------------------
 
-_SCORE_MIN = 0.001
-_SCORE_MAX = 0.999
+_SCORE_MIN = 0.01
+_SCORE_MAX = 0.99
 
 
 def _clamp(score: float) -> float:

@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -36,6 +35,29 @@ TASK_IDS = [
 ]
 
 # ---------------------------------------------------------------------------
+# Strict openenv stdout logging formats
+# ---------------------------------------------------------------------------
+def log_start(task: str, env: str, model: str) -> None:
+    print(f"[START] task={task} env={env} model={model}", flush=True)
+
+def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str] = None) -> None:
+    err_str = "null" if not error else f"\"{error}\""
+    # some errors contain quotes so just escaping broadly or printing null avoids breaking things, 
+    # but the sample uses 'error=null' for clean. When there is a string, it should ideally be clean.
+    # To keep it completely safe from breaking parsing, we replace spaces/newlines with underscores
+    if error:
+        err_str = error.replace("\n", " ").replace('"', "'")
+        err_str = f'"{err_str}"'
+    done_str = "true" if done else "false"
+    print(f"[STEP] step={step} action={action} reward={reward:.2f} done={done_str} error={err_str}", flush=True)
+
+def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> None:
+    succ_str = "true" if success else "false"
+    rew_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(f"[END] success={succ_str} steps={steps} score={score:.3f} rewards={rew_str}", flush=True)
+
+
+# ---------------------------------------------------------------------------
 # System prompt (maximises agent performance)
 # ---------------------------------------------------------------------------
 
@@ -58,29 +80,13 @@ Strategy:
 Always output valid JSON with exactly one action. Nothing else."""
 
 # ---------------------------------------------------------------------------
-# HTTP helpers
-# ---------------------------------------------------------------------------
-
-def _post(path: str, **kwargs) -> dict:
-    r = httpx.post(f"{SERVER_URL}{path}", timeout=REQUEST_TIMEOUT, **kwargs)
-    r.raise_for_status()
-    return r.json()
-
-
-def _get(path: str, **kwargs) -> dict:
-    r = httpx.get(f"{SERVER_URL}{path}", timeout=REQUEST_TIMEOUT, **kwargs)
-    r.raise_for_status()
-    return r.json()
-
-
-# ---------------------------------------------------------------------------
 # Agent loop
 # ---------------------------------------------------------------------------
 
 def run_task(task_id: str, base_url: Optional[str] = None) -> float:
     """
     Run one full episode for `task_id` using the ReAct agent.
-    Returns the final grader score (0.0 – 1.0).
+    Returns the final grader score clamped between 0.01 and 0.99.
     """
     server = base_url or SERVER_URL
 
@@ -95,7 +101,7 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
         obs = r.json()
     except Exception as exc:
         print(f"  [ERROR] reset failed for {task_id}: {exc}")
-        return 0.0
+        return 0.01
 
     session_id: str = obs["session_id"]
     max_steps: int = obs.get("max_steps", 15)
@@ -111,8 +117,17 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
         {"role": "user", "content": json.dumps(obs, indent=2)},
     ]
 
+    log_start(task=task_id, env="sql-auto-repair", model=MODEL_NAME)
+    
+    rewards: list[float] = []
+    steps_taken = 0
+    score = 0.01
+    success = False
+
     # -- ReAct loop ---------------------------------------------------------
     for step_num in range(max_steps):
+        steps_taken = step_num + 1
+
         # Agent generates an action
         try:
             completion = client.chat.completions.create(
@@ -125,10 +140,10 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
             raw = completion.choices[0].message.content.strip()
             action_json = json.loads(raw)
         except Exception as exc:
-            print(f"  [WARN] LLM call failed at step {step_num}: {exc}")
-            # Fallback: submit broken query to end episode
+            # Fallback: submit broken query to end episode safely
             action_json = {"action_type": "submit_query", "sql_query": obs.get("broken_query", "")}
-
+            
+        action_type = action_json.get("action_type", "unknown")
         messages.append({"role": "assistant", "content": json.dumps(action_json)})
 
         # Send action to environment
@@ -148,7 +163,14 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
         new_obs = step_data.get("observation", {})
         messages.append({"role": "user", "content": json.dumps(new_obs, indent=2)})
 
-        if step_data.get("done", False):
+        reward = float(step_data.get("reward", 0.0))
+        done = bool(step_data.get("done", False))
+        error_msg = new_obs.get("execution_error")
+        rewards.append(reward)
+
+        log_step(step=steps_taken, action=action_type, reward=reward, done=done, error=error_msg)
+
+        if done:
             # Fetch official grader score
             try:
                 grade_r = httpx.get(
@@ -156,12 +178,20 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
                     params={"session_id": session_id},
                     timeout=REQUEST_TIMEOUT,
                 )
-                return float(grade_r.json().get("score", 0.0))
+                raw_score = float(grade_r.json().get("score", 0.0))
             except Exception:
-                return float(new_obs.get("current_score", 0.0))
+                raw_score = float(new_obs.get("current_score", 0.0))
+            
+            score = max(0.01, min(0.99, raw_score))
+            success = score > 0.5  # Arbitrary threshold to log as "successful" completion
+            
+            log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+            return score
 
-    # Episode ended without submit — return 0
-    return 0.0
+    # Episode ended without submit — return clamped minimum
+    score = 0.01
+    log_end(success=False, steps=steps_taken, score=score, rewards=rewards)
+    return score
 
 
 # ---------------------------------------------------------------------------
@@ -173,20 +203,11 @@ def main() -> None:
     task_filter = sys.argv[1] if len(sys.argv) > 1 else None
     task_ids_to_run = [task_filter] if task_filter else TASK_IDS
 
-    print(f"[START]")
-    print(f"Model : {MODEL_NAME}")
-    print(f"Server : {SERVER_URL}")
-
     scores: dict[str, float] = {}
 
     for task_id in task_ids_to_run:
-        t0 = time.time()
         score = run_task(task_id)
-        elapsed = time.time() - t0
         scores[task_id] = score
-        print(f"[STEP] {task_id}: score={score:.3f} elapsed={elapsed:.1f}s")
-
-    print(f"[END]")
 
 
 if __name__ == "__main__":
