@@ -42,7 +42,20 @@ def _normalize(rows: List[tuple]) -> List[tuple]:
 
 
 # ---------------------------------------------------------------------------
-# Row-diff grader  (Tasks 1–4)
+# Score clamping — validator requires strictly (0, 1)
+# ---------------------------------------------------------------------------
+
+_SCORE_MIN = 0.001
+_SCORE_MAX = 0.999
+
+
+def _clamp(score: float) -> float:
+    """Clamp score to the open interval (0, 1) as required by the validator."""
+    return max(_SCORE_MIN, min(_SCORE_MAX, score))
+
+
+# ---------------------------------------------------------------------------
+# Row-diff grader  (Tasks 1–4, 6–8)
 # ---------------------------------------------------------------------------
 
 def row_diff_grade(
@@ -55,13 +68,13 @@ def row_diff_grade(
     """
     Counter-based multiset comparison between submitted and gold rows.
 
-    Returns a float in [0.0, 1.0].
-    - Empty submitted or gold → 0.0 (guard against reward farming)
+    Returns a float strictly in (0.001, 0.999).
+    - Empty submitted or gold → _SCORE_MIN (guard against reward farming)
     - Each matched row decrements the gold counter (handles duplicate rows)
     - Optional +0.10 bonus when column names exactly match
     """
     if not gold_rows or not submitted_rows:
-        return 0.0
+        return _SCORE_MIN
 
     sub_norm = _normalize(submitted_rows)
     gold_norm = _normalize(gold_rows)
@@ -82,7 +95,8 @@ def row_diff_grade(
         if sub_cols_norm == gold_cols_norm:
             bonus = 0.10
 
-    return min(1.0, ratio + bonus)
+    raw = ratio + bonus
+    return _clamp(raw)
 
 
 # ---------------------------------------------------------------------------
@@ -127,4 +141,5 @@ def hard_grade(
         include_column_bonus=False,   # No column bonus for hard task
     )
     efficiency = _get_efficiency_score(sandbox, sql)
-    return round(correctness * 0.6 + efficiency * 0.4, 4)
+    raw = correctness * 0.6 + efficiency * 0.4
+    return round(_clamp(raw), 4)

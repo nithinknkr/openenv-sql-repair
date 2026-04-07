@@ -15,7 +15,7 @@ from models import (
     ActionType,
 )
 from server.sandbox import SQLSandbox
-from server.grader import row_diff_grade, hard_grade
+from server.grader import row_diff_grade, hard_grade, _SCORE_MIN, _SCORE_MAX
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -253,7 +253,7 @@ class SQLRepairEnvironment:
             loop_penalty = _REWARD_LOOP_PENALTY
 
         if err or not rows:
-            self.current_score = 0.0
+            self.current_score = _SCORE_MIN
             return loop_penalty
 
         # Grade
@@ -263,7 +263,7 @@ class SQLRepairEnvironment:
         else:
             score = row_diff_grade(rows, cols, self._gold_rows, self._gold_cols)
 
-        self.current_score = round(score, 4)
+        self.current_score = round(max(_SCORE_MIN, min(_SCORE_MAX, score)), 4)
         return round(score * _REWARD_SUBMIT_MULT, 4) + loop_penalty
 
     def _build_observation(self, schema_info: Optional[str] = None) -> SQLRepairObservation:
