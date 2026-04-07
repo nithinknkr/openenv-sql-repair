@@ -95,8 +95,8 @@ def row_diff_grade(
         if sub_cols_norm == gold_cols_norm:
             bonus = 0.10
 
-    raw = ratio + bonus
-    return _clamp(raw)
+    raw = min(1.0, ratio + bonus)
+    return round(max(_SCORE_MIN, min(_SCORE_MAX, raw)), 4)
 
 
 # ---------------------------------------------------------------------------
@@ -109,13 +109,13 @@ def _get_efficiency_score(sandbox: "SQLSandbox", sql: str) -> float:
             return 0.5
         plan_text = " ".join(str(row[-1]).upper() for row in rows)
         if "CORRELATED" in plan_text:
-            return 0.0 # N+1 confirmed
+            return 0.05
         scan_count = plan_text.count("SCAN")
         if scan_count <= 2:
-            return 1.0 # single JOIN pass
-        return 0.8
+            return 0.95
+        return 0.80
     except Exception:
-        return 0.5
+        return 0.50
 
 
 # ---------------------------------------------------------------------------
@@ -142,4 +142,4 @@ def hard_grade(
     )
     efficiency = _get_efficiency_score(sandbox, sql)
     raw = correctness * 0.6 + efficiency * 0.4
-    return round(_clamp(raw), 4)
+    return round(max(_SCORE_MIN, min(_SCORE_MAX, raw)), 4)

@@ -146,10 +146,13 @@ def tasks():
 @app.get("/grader")
 def grader(session_id: str = Query(...)):
     """Return the current grader score for a session."""
+    from server.grader import _SCORE_MIN, _SCORE_MAX
     env = _get_env(session_id)
     st = env.state()
+    # Always clamp at the HTTP boundary — validator requires strictly (0, 1)
+    safe_score = max(_SCORE_MIN, min(_SCORE_MAX, st.current_score))
     return {
-        "score": st.current_score,
+        "score": safe_score,
         "task_id": st.task_id,
         "is_done": st.is_done,
         "step_count": st.step_count,

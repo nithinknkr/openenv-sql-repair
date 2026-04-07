@@ -82,7 +82,7 @@ class SQLRepairEnvironment:
         self.submitted_queries: List[str] = [] # only submit_query calls
         self.total_reward: float = 0.0
         self.is_done: bool = False
-        self.current_score: float = 0.0
+        self.current_score: float = _SCORE_MIN
         self._cached_schema: str = ""
         self._gold_rows: List[tuple] = []
         self._gold_cols: List[str] = []
@@ -120,7 +120,7 @@ class SQLRepairEnvironment:
         self.submitted_queries = []
         self.total_reward = 0.0
         self.is_done = False
-        self.current_score = 0.0
+        self.current_score = _SCORE_MIN
         self._cached_schema = ""
         self._session_id = session_id
 
