@@ -3,27 +3,28 @@
     "task_id": "syntax_missing_comma",
     "difficulty": "Easy",
     "bug_type": "Syntax Bug",
-    "description": "The SELECT column list is missing commas between column names, causing a syntax error. Fix the query so it correctly retrieves id, username, and email from the users table.",
-    "broken_query": "SELECT id username email FROM users;",
+    "description": "The SELECT query should return all 50 users with their id, username, and email — but it currently has a WHERE clause that limits results to only the first 25 rows. Remove the incorrect filter so all users are returned.",
+    "broken_query": "SELECT id, username, email FROM users WHERE id <= 25;",
     "gold_query": "SELECT id, username, email FROM users;",
     "max_steps": 8,
     "hints": [
-      "Check the column list in the SELECT statement.",
-      "SQL requires a comma separating each selected column."
+      "The query runs but returns fewer rows than expected.",
+      "Check whether there should be a WHERE clause at all.",
+      "The goal is to retrieve every user in the table."
     ]
   },
   {
     "task_id": "syntax_ambiguous_column",
     "difficulty": "Easy",
     "bug_type": "Syntax Bug",
-    "description": "The query joins users and orders but references 'id' without a table prefix. SQLite raises 'ambiguous column name: id' because both tables have an id column. Fix the query by qualifying the column with its table name so it returns each user's username alongside their order id.",
-    "broken_query": "SELECT username, id FROM users JOIN orders ON users.id = orders.user_id;",
+    "description": "The query joins users and orders but returns the wrong id column — it pulls users.id instead of orders.id. Fix the query so it returns each user's username alongside their correct order id.",
+    "broken_query": "SELECT users.username, users.id FROM users JOIN orders ON users.id = orders.user_id;",
     "gold_query": "SELECT users.username, orders.id FROM users JOIN orders ON users.id = orders.user_id;",
     "max_steps": 8,
     "hints": [
-      "When two tables share a column name, SQLite cannot tell which one you mean.",
-      "Prefix the ambiguous column with its table name, e.g. orders.id.",
-      "Both tables have an 'id' column — be explicit about which one you want."
+      "The query runs but the id column contains wrong values.",
+      "Check which table the id column is being pulled from.",
+      "You want the order's id, not the user's id — be explicit with the table prefix."
     ]
   },
   {
