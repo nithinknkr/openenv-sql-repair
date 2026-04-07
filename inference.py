@@ -10,13 +10,14 @@ from typing import Optional
 import httpx
 from openai import OpenAI
 
-# ---------------------------------------------------------------------------
-# Configuration (read from environment — NEVER hardcode secrets)
-# ---------------------------------------------------------------------------
-
-API_KEY: str = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or os.getenv("GROQ_API_KEY", "")
+# Required env vars (per OpenEnv submission spec)
 API_BASE_URL: str = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME: str = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
+MODEL_NAME: str   = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
+HF_TOKEN: str     = os.getenv("HF_TOKEN")           # No default — injected by platform
+LOCAL_IMAGE_NAME: str = os.getenv("LOCAL_IMAGE_NAME")  # Optional — for docker mode
+
+# Internal helpers
+API_KEY: str    = HF_TOKEN or os.getenv("OPENAI_API_KEY") or os.getenv("GROQ_API_KEY", "")
 SERVER_URL: str = os.getenv("SERVER_URL", "http://localhost:7860")
 
 TEMPERATURE: float = 0.0      # Must be 0 for reproducibility
@@ -183,7 +184,7 @@ def main() -> None:
         score = run_task(task_id)
         elapsed = time.time() - t0
         scores[task_id] = score
-        print(f" {task_id}: score={score:.3f} ({elapsed:.1f}s)")
+        print(f"[STEP] {task_id}: score={score:.3f} elapsed={elapsed:.1f}s")
 
     print(f"[END]")
 
