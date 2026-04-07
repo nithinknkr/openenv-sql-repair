@@ -82,9 +82,7 @@ def row_diff_grade(
         if sub_cols_norm == gold_cols_norm:
             bonus = 0.10
 
-    # WITH THIS:
-    raw = min(1.0, ratio + bonus)
-    return round(max(0.01, min(0.99, raw)), 4)
+    return min(1.0, ratio + bonus)
 
 
 # ---------------------------------------------------------------------------
@@ -96,15 +94,14 @@ def _get_efficiency_score(sandbox: "SQLSandbox", sql: str) -> float:
         if err or not rows:
             return 0.5
         plan_text = " ".join(str(row[-1]).upper() for row in rows)
-        # WITH THIS:
         if "CORRELATED" in plan_text:
-            return 0.05  # N+1 confirmed — low but not zero
+            return 0.0 # N+1 confirmed
         scan_count = plan_text.count("SCAN")
         if scan_count <= 2:
-            return 0.95  # single JOIN pass — high but not one
-        return 0.80
+            return 1.0 # single JOIN pass
+        return 0.8
     except Exception:
-        return 0.50
+        return 0.5
 
 
 # ---------------------------------------------------------------------------
