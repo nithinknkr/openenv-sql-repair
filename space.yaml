@@ -8,5 +8,6 @@ tags:
   - openenv
   - sql
   - reinforcement-learning
+  - pytorch
   - data-engineering
 pinned: false

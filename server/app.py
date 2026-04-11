@@ -33,7 +33,7 @@ from server.sql_repair_environment import SQLRepairEnvironment, _TASKS
 app = FastAPI(
     title="SQL Auto-Repair OpenEnv",
     description="RL environment where an AI agent repairs broken SQL queries.",
-    version="1.0.0",
+    version="1.1.0",
 )
 
 app.add_middleware(
@@ -68,7 +68,7 @@ def root():
 @app.get("/health")
 def health():
     """Automated ping target — must return 200 with status=healthy."""
-    return {"status": "healthy", "version": "1.0.0"}
+    return {"status": "healthy", "version": "1.1.0"}
 
 
 class ResetRequest(BaseModel):
@@ -120,7 +120,7 @@ def close(session_id: str = Query(...)):
 
 @app.get("/tasks")
 def tasks():
-    """List all 8 tasks and the full action schema."""
+    """List all tasks and the full action schema."""
     task_list = list(_TASKS.values())
     return {
         "tasks": task_list,
@@ -235,7 +235,7 @@ def metadata():
             "The agent must explore the schema, run candidate fixes, and submit a "
             "corrected query — all evaluated by a deterministic row-diff grader."
         ),
-        "version": "1.0.0",
+        "version": "1.1.0",
         "author": "Q-Agents (Monish + Nithin)",
         "tasks_count": len(_TASKS),
     }
@@ -282,25 +282,27 @@ def mcp():
 
 @app.get("/leaderboard")
 def leaderboard():
-    """Baseline scores for llama-3.3-70b and a random agent."""
+    """Baseline scores — run GET /baseline to compute live scores."""
     return {
+        "note": "Run GET /baseline to compute live scores against all tasks.",
         "leaderboard": [
             {
-                "model": "llama-3.3-70b-versatile (temp=0)",
+                "model": "llama-3.1-8b-instant (reproducible run)",
+                "average": 0.948,
                 "scores": {
-                    "syntax_missing_comma": 0.990,
-                    "syntax_ambiguous_column": 0.990,
-                    "logic_operator_precedence": 0.980,
-                    "logic_date_boundary": 0.965,
-                    "perf_n_plus_one": 0.920,
-                    "logic_window_partition": 0.950,
-                    "logic_missing_having": 0.940,
-                    "cascade_pipeline_bug": 0.880,
+                    "syntax_missing_comma": 1.000,
+                    "syntax_ambiguous_column": 1.000,
+                    "logic_operator_precedence": 1.000,
+                    "logic_date_boundary": 0.580,
+                    "perf_n_plus_one": 1.000,
+                    "logic_window_partition": 1.000,
+                    "logic_missing_having": 0.990,
+                    "cascade_pipeline_bug": 1.000,
                 },
-                "average": 0.954,
             },
             {
                 "model": "random agent",
+                "average": 0.016,
                 "scores": {
                     "syntax_missing_comma": 0.05,
                     "syntax_ambiguous_column": 0.03,
@@ -311,9 +313,87 @@ def leaderboard():
                     "logic_missing_having": 0.01,
                     "cascade_pipeline_bug": 0.01,
                 },
-                "average": 0.016,
             },
-        ]
+        ],
+    }
+
+
+@app.post("/train")
+def train_pytorch(
+    task_id: Optional[str] = None,
+    episodes: int = Query(default=5, ge=1, le=20),
+):
+    """
+    Train a PyTorch DQN agent on this environment.
+
+    Args:
+        task_id:  Task to train on (default: syntax_missing_comma)
+        episodes: Number of training episodes (1–20)
+
+    Returns training rewards per episode and average reward.
+    This demonstrates actual RL training using PyTorch.
+    """
+    try:
+        from pytorch_agent import train_dqn
+
+        server_url = f"http://localhost:{os.getenv('PORT', '7860')}"
+        tid = task_id or "syntax_missing_comma"
+
+        if tid not in _TASKS:
+            raise HTTPException(status_code=404, detail=f"Task '{tid}' not found.")
+
+        _, rewards = train_dqn(
+            server_url=server_url,
+            task_id=tid,
+            n_episodes=episodes,
+            verbose=False,
+        )
+
+        return {
+            "task_id": tid,
+            "episodes": episodes,
+            "training_rewards": rewards,
+            "avg_reward": round(sum(rewards) / len(rewards), 4),
+            "best_reward": round(max(rewards), 4),
+            "framework": "PyTorch DQN (3-layer MLP, epsilon-greedy, experience replay)",
+            "architecture": {
+                "input_dim": 16,
+                "hidden_dim": 64,
+                "n_actions": 4,
+                "optimizer": "Adam",
+                "gamma": 0.99,
+            },
+        }
+
+    except ImportError:
+        raise HTTPException(
+            status_code=501,
+            detail="PyTorch not installed. Add 'torch' to dependencies.",
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/trajectory")
+def trajectory(session_id: str = Query(...)):
+    """
+    Return the full reward trajectory and statistics for a session.
+
+    Useful for evaluating agent performance over the episode —
+    shows how reward accumulated across steps.
+    """
+    env = _get_env(session_id)
+    return {
+        "session_id": session_id,
+        "task_id": env.task["task_id"] if env.task else "",
+        "difficulty": env.task.get("difficulty", "") if env.task else "",
+        "step_count": env.step_count,
+        "total_reward": round(env.total_reward, 4),
+        "current_score": env.current_score,
+        "queries_attempted": len(env.history),
+        "submit_attempts": len(env.submitted_queries),
+        "is_done": env.is_done,
+        "history_count": len(env.history),
     }
 
 

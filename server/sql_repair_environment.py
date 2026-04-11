@@ -266,6 +266,23 @@ class SQLRepairEnvironment:
         self.current_score = round(max(_SCORE_MIN, min(_SCORE_MAX, score)), 4)
         return round(score * _REWARD_SUBMIT_MULT, 4) + loop_penalty
 
+    def _get_unlocked_hints(self, task: dict) -> list:
+        """
+        Gate hints behind step count — forces exploration before assistance.
+
+        Unlock schedule:
+          Steps 0-2  : no hints (agent must explore on their own)
+          Steps 3-5  : first hint unlocked
+          Steps 6-8  : second hint unlocked
+          Steps 9+   : all hints unlocked
+        """
+        all_hints = task.get("hints", [])
+        if not all_hints:
+            return []
+        # Each hint unlocks every 3 steps, starting at step 3
+        unlocked = max(0, (self.step_count - 2) // 3)
+        return all_hints[:unlocked]
+
     def _build_observation(self, schema_info: Optional[str] = None) -> SQLRepairObservation:
         """Construct the current observation for the agent.
 
@@ -273,6 +290,7 @@ class SQLRepairEnvironment:
         It is NOT persisted across steps to prevent free information leakage.
         """
         task = self.task or {}
+        all_hints = task.get("hints", [])
         return SQLRepairObservation(
             session_id=self._session_id,
             task_id=task.get("task_id", ""),
@@ -285,6 +303,7 @@ class SQLRepairEnvironment:
             execution_time_ms=self.last_execution_time_ms if task.get("task_id") == "perf_n_plus_one" else None,
             step_count=self.step_count,
             max_steps=task.get("max_steps", 15),
-            hints=task.get("hints", []),
+            hints=self._get_unlocked_hints(task),
+            total_hints=len(all_hints),
             available_actions=["view_schema", "view_error", "run_query", "submit_query"],
         )

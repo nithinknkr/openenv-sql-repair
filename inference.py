@@ -32,6 +32,8 @@ TASK_IDS = [
     "logic_window_partition",
     "logic_missing_having",
     "cascade_pipeline_bug",
+    "logic_null_trap",
+    "logic_wrong_join",
 ]
 
 # ---------------------------------------------------------------------------
@@ -42,9 +44,6 @@ def log_start(task: str, env: str, model: str) -> None:
 
 def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str] = None) -> None:
     err_str = "null" if not error else f"\"{error}\""
-    # some errors contain quotes so just escaping broadly or printing null avoids breaking things, 
-    # but the sample uses 'error=null' for clean. When there is a string, it should ideally be clean.
-    # To keep it completely safe from breaking parsing, we replace spaces/newlines with underscores
     if error:
         err_str = error.replace("\n", " ").replace('"', "'")
         err_str = f'"{err_str}"'
@@ -62,22 +61,74 @@ def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> No
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = """\
-You are a SQL expert debugging broken SQL queries against an e-commerce SQLite database.
+You are a SQL debugging expert. Your job is to repair a broken SQL query \
+against a sandboxed SQLite e-commerce database with these tables: \
+users, orders, order_items, products, categories.
 
-Available actions (respond with JSON only — no extra text):
-  {"action_type": "view_schema"}                          — See all table definitions
-  {"action_type": "view_error"}                           — See the last error message
-  {"action_type": "run_query",    "sql_query": "<SQL>"}   — Test a candidate fix
-  {"action_type": "submit_query", "sql_query": "<SQL>"}   — Submit final answer (ends episode)
+Available actions (respond with ONLY valid JSON, no other text):
+  {"action_type": "view_schema"}
+  {"action_type": "view_error"}
+  {"action_type": "run_query",    "sql_query": "<SQL>"}
+  {"action_type": "submit_query", "sql_query": "<SQL>"}
 
-Strategy:
-1. Call view_schema first to understand the tables.
-2. Call run_query to test your fix against the live DB.
-3. Only call submit_query when you are confident the output is correct.
-4. Avoid repeating the same query. Fix errors shown in execution_error.
-5. For performance tasks: rewrite correlated subqueries as JOIN + GROUP BY.
+Debugging strategy:
+1. ALWAYS call view_schema first to understand the tables and column names.
+2. Run the broken_query as-is with run_query to see the actual error or wrong output.
+3. Form a hypothesis about what is wrong. Test it with run_query.
+4. Only call submit_query when your run_query output matches what the description says it should return.
+5. Never repeat the same query twice. Each run_query should test a different hypothesis.
+6. For performance tasks: use EXPLAIN QUERY PLAN to detect correlated subqueries.
+7. For NULL issues: remember = NULL never matches — use IS NULL or IS NOT NULL.
+8. For aggregation issues: WHERE filters before grouping, HAVING filters after.
 
-Always output valid JSON with exactly one action. Nothing else."""
+Always respond with exactly one JSON action. Nothing else."""
+
+# ---------------------------------------------------------------------------
+# PyTorch DQN pre-training
+# ---------------------------------------------------------------------------
+
+def run_dqn_pretraining(server_url: str, n_episodes: int = 5) -> dict:
+    """
+    Run PyTorch DQN training before the LLM agent.
+
+    This demonstrates actual RL training on the environment.
+    Even 5 episodes shows the training loop working.
+    Returns a summary of training performance.
+    """
+    try:
+        from pytorch_agent import train_dqn
+
+        print("\n" + "=" * 60)
+        print("  PyTorch DQN Pre-Training")
+        print("=" * 60)
+
+        all_rewards = {}
+        # Train on easy tasks first (more signal for a few episodes)
+        train_tasks = ["syntax_missing_comma", "syntax_ambiguous_column"]
+
+        for task_id in train_tasks:
+            print(f"\n[DQN] Training on task: {task_id}")
+            _, rewards = train_dqn(
+                server_url=server_url,
+                task_id=task_id,
+                n_episodes=n_episodes,
+                verbose=True,
+            )
+            all_rewards[task_id] = rewards
+            avg = sum(rewards) / len(rewards)
+            print(f"[DQN] Finished {task_id}: avg_reward={avg:.4f}")
+
+        print("\n[DQN] Pre-training complete.")
+        print("=" * 60 + "\n")
+        return all_rewards
+
+    except ImportError:
+        print("[DQN] PyTorch not available — skipping pre-training.")
+        return {}
+    except Exception as exc:
+        print(f"[DQN] Pre-training error: {exc} — continuing with LLM agent.")
+        return {}
+
 
 # ---------------------------------------------------------------------------
 # Agent loop
@@ -118,7 +169,7 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
     ]
 
     log_start(task=task_id, env="sql-auto-repair", model=MODEL_NAME)
-    
+
     rewards: list[float] = []
     steps_taken = 0
     score = 0.01
@@ -142,7 +193,7 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
         except Exception as exc:
             # Fallback: submit broken query to end episode safely
             action_json = {"action_type": "submit_query", "sql_query": obs.get("broken_query", "")}
-            
+
         action_type = action_json.get("action_type", "unknown")
         messages.append({"role": "assistant", "content": json.dumps(action_json)})
 
@@ -181,10 +232,10 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
                 raw_score = float(grade_r.json().get("score", 0.0))
             except Exception:
                 raw_score = float(new_obs.get("current_score", 0.0))
-            
+
             score = max(0.01, min(0.99, raw_score))
             success = score > 0.5  # Arbitrary threshold to log as "successful" completion
-            
+
             log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
             return score
 
@@ -203,11 +254,21 @@ def main() -> None:
     task_filter = sys.argv[1] if len(sys.argv) > 1 else None
     task_ids_to_run = [task_filter] if task_filter else TASK_IDS
 
+    # ── Step 1: PyTorch DQN pre-training ──────────────────────────────
+    run_dqn_pretraining(SERVER_URL, n_episodes=3)
+
+    # ── Step 2: LLM ReAct agent evaluation ────────────────────────────
     scores: dict[str, float] = {}
 
     for task_id in task_ids_to_run:
         score = run_task(task_id)
         scores[task_id] = score
+
+    print("\n[RESULTS]")
+    for tid, score in scores.items():
+        print(f"  {tid}: {score:.4f}")
+    avg = sum(scores.values()) / len(scores)
+    print(f"  Average: {avg:.4f}")
 
 
 if __name__ == "__main__":

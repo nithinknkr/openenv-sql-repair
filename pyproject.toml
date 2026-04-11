@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sql-auto-repair-openenv"
-version = "1.0.0"
+version = "1.1.0"
 description = "SQL Auto-Repair RL environment for the OpenEnv framework"
 requires-python = ">=3.10"
 dependencies = [
@@ -15,6 +15,8 @@ dependencies = [
     "httpx>=0.24.0",
     "openenv-core>=0.2.0",
     "requests>=2.28.0",
+    # torch is installed separately in Dockerfile using the CPU-only wheel URL
+    # to avoid pip pulling the ~2GB CUDA build from PyPI
 ]
 
 [tool.hatch.build.targets.wheel]

@@ -87,7 +87,11 @@ class SQLRepairObservation(Observation):
     max_steps: int = Field(15, description="Maximum allowed steps for this task")
     hints: List[str] = Field(
         default_factory=list,
-        description="Optional progressive hints for the agent",
+        description="Progressive hints that unlock as steps increase",
+    )
+    total_hints: int = Field(
+        0,
+        description="Total hints available for this task (may not all be unlocked yet)",
     )
     available_actions: List[str] = Field(
         default_factory=lambda: ["view_schema", "view_error", "run_query", "submit_query"],

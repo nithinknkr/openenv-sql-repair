@@ -9,16 +9,17 @@ ENV PATH="/home/user/.local/bin:$PATH"
 
 WORKDIR /app
 
-# Install dependencies (single source of truth: pyproject.toml)
 # Copy all project files first (needed for pip install . to find pyproject.toml)
 COPY --chown=user . /app
 
-# Install from pyproject.toml — single source of truth, picks up ALL dependencies
+# Install PyTorch CPU first (smaller image, no CUDA overhead on HF Spaces)
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir .
 
-# Verify SQLite is available (built into Python stdlib)
+# Verify both SQLite and PyTorch are available
 RUN python -c "import sqlite3; print('SQLite OK:', sqlite3.sqlite_version)"
+RUN python -c "import torch; print('PyTorch OK:', torch.__version__)"
 
 # HuggingFace Spaces default port
 EXPOSE 7860

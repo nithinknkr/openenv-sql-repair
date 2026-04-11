@@ -3,21 +3,21 @@
     "task_id": "syntax_missing_comma",
     "difficulty": "Easy",
     "bug_type": "Syntax Bug",
-    "description": "The SELECT query should return all 50 users with their id, username, and email — but it currently has a WHERE clause that limits results to only the first 25 rows. Remove the incorrect filter so all users are returned.",
-    "broken_query": "SELECT id, username, email FROM users WHERE id <= 25;",
+    "description": "This query fails to execute. Read the error message carefully and fix the SQL so it returns all users with their id, username, and email.",
+    "broken_query": "SELECT id username email FROM users;",
     "gold_query": "SELECT id, username, email FROM users;",
     "max_steps": 8,
     "hints": [
-      "The query runs but returns fewer rows than expected.",
-      "Check whether there should be a WHERE clause at all.",
-      "The goal is to retrieve every user in the table."
+      "Run the query first — what does the error message say?",
+      "Look at the SELECT clause very carefully.",
+      "In SQL, column names in a SELECT must be separated by commas."
     ]
   },
   {
     "task_id": "syntax_ambiguous_column",
     "difficulty": "Easy",
     "bug_type": "Syntax Bug",
-    "description": "The query joins users and orders but returns the wrong id column — it pulls users.id instead of orders.id. Fix the query so it returns each user's username alongside their correct order id.",
+    "description": "This query joins users and orders, but the id values in the result look wrong. Investigate which table each column is being pulled from and fix it.",
     "broken_query": "SELECT users.username, users.id FROM users JOIN orders ON users.id = orders.user_id;",
     "gold_query": "SELECT users.username, orders.id FROM users JOIN orders ON users.id = orders.user_id;",
     "max_steps": 8,
@@ -31,67 +31,77 @@
     "task_id": "logic_operator_precedence",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
-    "description": "This query is supposed to return only high-value cancelled or pending orders, but due to operator precedence the AND binds tighter than OR and the condition evaluates incorrectly. Add parentheses around the OR condition to fix the logic.",
+    "description": "This query is supposed to return only high-value cancelled or pending orders, but the row count doesn't match expectations. Debug the WHERE condition.",
     "broken_query": "SELECT id, user_id, status, total_amount FROM orders WHERE status = 'cancelled' OR status = 'pending' AND total_amount > 500.00 ORDER BY total_amount DESC;",
     "gold_query": "SELECT id, user_id, status, total_amount FROM orders WHERE (status = 'cancelled' OR status = 'pending') AND total_amount > 500.00 ORDER BY total_amount DESC;",
     "max_steps": 12,
-    "hints": []
+    "hints": [
+      "Run both the query and check the row count — is every row a high-value order?",
+      "Inspect the WHERE clause operators. In SQL, AND has higher precedence than OR.",
+      "Use parentheses to explicitly group the OR condition."
+    ]
   },
   {
     "task_id": "logic_date_boundary",
     "difficulty": "Medium",
     "bug_type": "Logic Bug",
-    "description": "This query should return all orders from a specific date onwards but the row count does not match expectations. Fix it.",
+    "description": "This query should return all orders for the entire year, but it is returning fewer rows than expected. Investigate the filter condition.",
     "broken_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) > '2025-02-15' ORDER BY created_at;",
     "gold_query": "SELECT id, user_id, status, total_amount, created_at FROM orders WHERE DATE(created_at) >= '2025-01-01' ORDER BY created_at;",
     "max_steps": 12,
     "hints": [
       "Check the row count — the query should return all orders for the entire year.",
-      "Both the comparison operator AND the date value may need to be changed."
+      "Both the comparison operator AND the date value may need to be changed.",
+      "Think about what date range is needed to cover the whole year from January 1st."
     ]
   },
   {
     "task_id": "perf_n_plus_one",
     "difficulty": "Hard",
     "bug_type": "Performance Bug",
-    "description": "This query returns correct results but becomes extremely slow as the products table grows. Fix the performance issue.",
+    "description": "This query returns correct results but is extremely slow on large datasets. Diagnose the performance problem and rewrite it to be efficient.",
     "broken_query": "SELECT id, name, (SELECT SUM(quantity) FROM order_items WHERE product_id = products.id) AS total_sold FROM products;",
     "gold_query": "SELECT products.id, products.name, COALESCE(SUM(order_items.quantity), 0) AS total_sold FROM products LEFT JOIN order_items ON products.id = order_items.product_id GROUP BY products.id, products.name;",
     "max_steps": 15,
     "hints": [
-      "Consider how many times the database engine executes work for each row in the result."
+      "Use EXPLAIN QUERY PLAN on the broken query — how many scans does it perform?",
+      "Consider how many times the subquery executes relative to the number of products.",
+      "Rewrite using a JOIN and GROUP BY to compute all aggregates in a single pass."
     ]
   },
   {
     "task_id": "logic_window_partition",
     "difficulty": "Hard",
     "bug_type": "Logic Bug",
-    "description": "This query ranks products by price but the rankings appear incorrect. Fix the query.",
+    "description": "This query ranks products by price, but the rankings look wrong when you compare products within the same category. Find and fix the issue.",
     "broken_query": "SELECT p.id, p.name, p.price, c.name AS category, RANK() OVER (ORDER BY p.price DESC) AS price_rank FROM products p JOIN categories c ON p.category_id = c.id ORDER BY c.name, price_rank;",
     "gold_query": "SELECT p.id, p.name, p.price, c.name AS category, RANK() OVER (PARTITION BY p.category_id ORDER BY p.price DESC) AS price_rank FROM products p JOIN categories c ON p.category_id = c.id ORDER BY c.name, price_rank;",
     "max_steps": 15,
     "hints": [
-      "The rankings look correct globally but may not reflect the intended grouping."
+      "Run the query and look at price_rank values across different categories — do they restart from 1 for each category?",
+      "The RANK() window function needs a PARTITION BY clause to reset rankings per group.",
+      "Add PARTITION BY p.category_id to the OVER() clause."
     ]
   },
   {
     "task_id": "logic_missing_having",
     "difficulty": "Hard",
     "bug_type": "Logic Bug",
-    "description": "This query should return only users who have placed more than one order but it returns too many rows. Fix it.",
-    "broken_query": "SELECT o.id AS order_id, u.username, COUNT(oi.id) AS item_count, SUM(oi.quantity * oi.unit_price) AS order_total FROM orders o JOIN users u ON o.user_id = u.id JOIN order_items oi ON o.id = oi.order_id GROUP BY o.id, u.username ORDER BY item_count DESC;",
-    "gold_query": "SELECT o.id AS order_id, u.username, COUNT(oi.id) AS item_count, SUM(oi.quantity * oi.unit_price) AS order_total FROM orders o JOIN users u ON o.user_id = u.id JOIN order_items oi ON o.id = oi.order_id GROUP BY o.id, u.username HAVING COUNT(oi.id) > 1 ORDER BY item_count DESC;",
+    "description": "This query is supposed to return only users who have placed more than one order, but it returns too many rows. Something is missing from the query — find it and fix it.",
+    "broken_query": "SELECT u.id, u.username, COUNT(o.id) AS order_count FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.username ORDER BY order_count DESC;",
+    "gold_query": "SELECT u.id, u.username, COUNT(o.id) AS order_count FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.username HAVING COUNT(o.id) > 1 ORDER BY order_count DESC;",
     "max_steps": 15,
     "hints": [
-      "The query returns more rows than expected. Think about where result filtering happens after GROUP BY.",
-      "You need a HAVING clause. The condition should filter for orders with more than one item."
+      "Run the query and count how many rows come back. Is that the right number?",
+      "The query groups correctly — but where should you filter on the result of an aggregation?",
+      "WHERE filters rows before grouping. You need a clause that filters AFTER grouping."
     ]
   },
   {
     "task_id": "cascade_pipeline_bug",
     "difficulty": "Hard",
     "bug_type": "cascade",
-    "description": "A 3-step reporting pipeline is producing wrong revenue figures. The pipeline calculates per-category revenue using CTEs. Each step depends on the previous. Fix all broken steps so the final result matches the expected output.",
+    "description": "This 3-step CTE pipeline produces wrong revenue figures. The bug in an early step cascades into every downstream step. Trace through the pipeline and fix the root cause.",
     "broken_query": "WITH\nstep1 AS (\n    SELECT product_id, SUM(quantity) as total_qty\n    FROM order_items\n    GROUP BY order_id\n),\nstep2 AS (\n    SELECT p.category_id, s.total_qty, p.price\n    FROM products p\n    JOIN step1 s ON p.id = s.product_id\n),\nstep3 AS (\n    SELECT category_id, SUM(total_qty) as units_sold, SUM(total_qty * price) as revenue\n    FROM step2\n    GROUP BY category_id\n)\nSELECT c.name as category, s.units_sold, s.revenue\nFROM step3 s\nJOIN categories c ON s.category_id = c.id\nORDER BY s.revenue DESC;",
     "gold_query": "WITH\nstep1 AS (\n    SELECT product_id, SUM(quantity) as total_qty\n    FROM order_items\n    GROUP BY product_id\n),\nstep2 AS (\n    SELECT p.category_id, s.total_qty, p.price\n    FROM products p\n    JOIN step1 s ON p.id = s.product_id\n),\nstep3 AS (\n    SELECT category_id, SUM(total_qty) as units_sold, SUM(total_qty * price) as revenue\n    FROM step2\n    GROUP BY category_id\n)\nSELECT c.name as category, s.units_sold, s.revenue\nFROM step3 s\nJOIN categories c ON s.category_id = c.id\nORDER BY s.revenue DESC;",
     "max_steps": 20,
@@ -99,6 +109,34 @@
       "Start by understanding what each step of the pipeline is supposed to produce before attempting any fix.",
       "Run step1 in isolation first — does GROUP BY order_id make sense for computing per-product quantity totals?",
       "The bug is in step1. Once step1 is wrong, every downstream step inherits the error."
+    ]
+  },
+  {
+    "task_id": "logic_null_trap",
+    "difficulty": "Medium",
+    "bug_type": "Logic Bug",
+    "description": "This query should return cancelled orders, but it returns no rows at all — even though cancelled orders definitely exist in the database. Figure out what is wrong and fix it.",
+    "broken_query": "SELECT id, user_id, total_amount, created_at FROM orders WHERE status = NULL ORDER BY created_at;",
+    "gold_query": "SELECT id, user_id, total_amount, created_at FROM orders WHERE status = 'cancelled' ORDER BY created_at;",
+    "max_steps": 10,
+    "hints": [
+      "Run the query — how many rows does it return?",
+      "Try querying without any WHERE clause to check if the data exists and inspect the status column values.",
+      "In SQL, NULL comparisons with = always return NULL (not TRUE). Look up how to correctly filter for a specific status value."
+    ]
+  },
+  {
+    "task_id": "logic_wrong_join",
+    "difficulty": "Medium",
+    "bug_type": "Logic Bug",
+    "description": "This query should return all users along with how many orders each user has placed. Users with zero orders should appear with a count of 0, but they are missing from the results. Fix the query.",
+    "broken_query": "SELECT u.id, u.username, COUNT(o.id) AS order_count FROM users u INNER JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.username ORDER BY order_count DESC;",
+    "gold_query": "SELECT u.id, u.username, COUNT(o.id) AS order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.username ORDER BY order_count DESC;",
+    "max_steps": 12,
+    "hints": [
+      "Run the broken query — count how many rows come back. How many users are in the database?",
+      "There should be 50 users in the result. If you see fewer, some users are being excluded.",
+      "Think about what happens to users who have never placed an order with the current JOIN type."
     ]
   }
 ]

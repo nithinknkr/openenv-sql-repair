@@ -1,22 +1,25 @@
 name: sql-auto-repair
-version: "1.0.0"
+version: "1.1.0"
 description: >
   A reinforcement-learning environment where an agent iteratively repairs
   broken SQL queries against a sandboxed SQLite e-commerce database.
   The agent must explore the schema, run candidate fixes, and submit a
   corrected query — all evaluated by a deterministic row-diff grader.
+  Includes a PyTorch DQN agent that trains via experience replay.
 
 author: Q-Agents (Monish + Nithin)
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
 endpoints:
-  reset:    POST /reset
-  step:     POST /step
-  state:    GET  /state
-  tasks:    GET  /tasks
-  grader:   GET  /grader
-  baseline: GET  /baseline
-  health:   GET  /health
+  reset:      POST /reset
+  step:       POST /step
+  state:      GET  /state
+  tasks:      GET  /tasks
+  grader:     GET  /grader
+  baseline:   GET  /baseline
+  health:     GET  /health
+  train:      POST /train        # PyTorch DQN training
+  trajectory: GET  /trajectory   # Episode reward history
 
 # ── Action Space ─────────────────────────────────────────────────────────────
 action_space:
@@ -50,7 +53,8 @@ observation_space:
     execution_time_ms:  { type: number,  description: "Execution time from last query in ms" }
     step_count:         { type: integer, description: "Steps taken so far" }
     max_steps:          { type: integer, description: "Maximum steps allowed" }
-    hints:              { type: array,   description: "Optional hints for the agent" }
+    hints:              { type: array,   description: "Progressive hints (unlock every 3 steps after step 3)" }
+    total_hints:        { type: integer, description: "Total hints available (may not all be unlocked yet)" }
     available_actions:  { type: array,   description: "Valid action_type values" }
 
 # ── Tasks ─────────────────────────────────────────────────────────────────────
@@ -80,6 +84,22 @@ tasks:
     endpoint: GET /grader
 
 - id: logic_date_boundary
+  difficulty: medium
+  bug_type: logic
+  grader:
+    type: row_diff
+    score_range: [0.001, 0.999]
+    endpoint: GET /grader
+
+- id: logic_null_trap
+  difficulty: medium
+  bug_type: logic
+  grader:
+    type: row_diff
+    score_range: [0.001, 0.999]
+    endpoint: GET /grader
+
+- id: logic_wrong_join
   difficulty: medium
   bug_type: logic
   grader:
@@ -124,6 +144,6 @@ grader:
   type: deterministic
   score_range: [0.001, 0.999]
   method: >
-    Tasks 1-4, 6-8: Counter-based row diff with float normalisation and column-name bonus.
+    Tasks 1-4, 6-10: Counter-based row diff with float normalisation and column-name bonus.
     Task 5: correctness × 0.6 + efficiency × 0.4 (EXPLAIN QUERY PLAN detects N+1 correlated subqueries).
     All scores clamped to strictly-open interval (0.001, 0.999).
