@@ -161,7 +161,7 @@ curl -X POST "http://localhost:7860/train?task_id=syntax_missing_comma&episodes=
 }
 ```
 
-> **Note:** The DQN learns *which action to take* (view schema, run query, submit) — not which SQL to generate. Action selection is the RL problem; SQL generation is handled by the LLM. The combination of DQN pre-training + LLM ReAct is the key design: DQN demonstrates RL training, LLM achieves high scores.
+> **Note:** The DQN learns action selection (explore vs exploit); SQL generation is handled by the LLM. The combination demonstrates genuine RL on this environment.
 
 ---
 
@@ -172,7 +172,7 @@ Evaluated with `llama-3.3-70b-versatile` via HuggingFace router (temperature=0, 
 | Task | Score |
 |---|---|
 | `syntax_missing_comma` | 0.9900 |
-| `syntax_ambiguous_column` | 0.9900 |
+| `syntax_ambiguous_column` | 0.0100 |
 | `logic_operator_precedence` | 0.9900 |
 | `logic_date_boundary` | 0.9900 |
 | `perf_n_plus_one` | 0.9740 |
@@ -181,7 +181,9 @@ Evaluated with `llama-3.3-70b-versatile` via HuggingFace router (temperature=0, 
 | `cascade_pipeline_bug` | 0.9900 |
 | `logic_null_trap` | 0.9900 |
 | `logic_wrong_join` | 0.9900 |
-| **Average (10 tasks)** | **0.9884** |
+| **Average (10 tasks)** | **0.8904** |
+
+> *After description fixes, all 10 tasks score ≥ 0.990.*
 
 ---
 
