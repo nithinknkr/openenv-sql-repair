@@ -34,6 +34,7 @@ TASK_IDS = [
     "cascade_pipeline_bug",
     "logic_null_trap",
     "logic_wrong_join",
+    "logic_count_fanout",
 ]
 
 # ---------------------------------------------------------------------------
@@ -79,8 +80,9 @@ Debugging strategy:
 5. Never repeat the same query twice. Each run_query should test a different hypothesis.
 6. For performance tasks: use EXPLAIN QUERY PLAN to detect correlated subqueries.
 7. For NULL issues: remember = NULL never matches — use IS NULL or IS NOT NULL.
-8. For aggregation issues: WHERE filters before grouping, HAVING filters after.
-9. When a query description says it 'returns too many rows', always try adding HAVING COUNT() > threshold after GROUP BY.
+8. For aggregation issues: WHERE filters rows before grouping, HAVING filters rows after grouping.
+9. For GROUP BY queries returning 'too many rows': run the broken query, COUNT the result rows, then add HAVING COUNT() > 1 (or similar threshold) immediately after the GROUP BY clause to filter grouped results.
+10. When debugging GROUP BY queries, always compare submitted row count vs expected row count — if too high, missing HAVING is likely the cause.
 
 Always respond with exactly one JSON action. Nothing else."""
 

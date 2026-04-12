@@ -68,13 +68,13 @@ sequenceDiagram
     
     API->>Env: step(run_query)
     
-    Env->>SB: parse_ast(sql_query)
-    Note over SB: Sandbox Blocklist checks for DROP/DELETE
+    Env->>SB: execute(sql_query)
+    Note over SB: Compiled regex blocklist checks for DROP/DELETE
     alt Blocked
         SB-->>Env: Return Security Error
     else Allowed
         SB->>DB: cursor.execute()
-        DB-->>SB: Return Rows (Proxy N+1 Check)
+        DB-->>SB: Return Rows (EXPLAIN QUERY PLAN optional)
         SB-->>Env: Update State
     end
     
@@ -84,5 +84,5 @@ sequenceDiagram
 ### Component Breakdown
 *   **`SessionManager`**: Acts as a concurrent gateway. Uses python `threading.Lock()` to prevent race conditions. Maps a string `session_id` to a unique Python memory location where the `SQLRepairEnvironment` data lives. Cleans up stale sessions to prevent Hugging Face RAM leaks.
 *   **`SQLRepairEnvironment`**: Implements the State Machine. Tracks `step_count`, enforces the `max_steps` timeout, and controls episode flow (reset, step, done). It inherits from `OpenEnv`'s strict Pydantic models.
-*   **`SQLSandbox`**: The core execution engine. Uses an AST (Abstract Syntax Tree) string parser to detect banned keywords (`ALTER`, `TRUNCATE`, `INSERT`). Wraps Python's built-in `sqlite3` context managers to isolate SQL connections strictly in `:memory:`.
+*   **`SQLSandbox`**: The core execution engine. Uses a compiled regex blocklist to detect and block destructive keywords (`ALTER`, `TRUNCATE`, `INSERT`, `DROP`, `DELETE`, `UPDATE`). Wraps Python's built-in `sqlite3` context managers to isolate SQL connections strictly in `:memory:`. Agents can optionally use EXPLAIN QUERY PLAN to debug performance issues.
 *   **`Grader`**: Purely mathematical execution validation logic. It caches the final payload from `sandbox.py` and compares `set(student_rows) == set(gold_rows)`. Modifies final return floats via algorithmic complexity formulas to verify efficiency.

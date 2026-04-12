@@ -138,5 +138,19 @@
       "There should be 50 users in the result. If you see fewer, some users are being excluded.",
       "Think about what happens to users who have never placed an order with the current JOIN type."
     ]
+  },
+  {
+    "task_id": "logic_count_fanout",
+    "difficulty": "Hard",
+    "bug_type": "Logic Bug",
+    "description": "This query returns category order counts but the numbers look too high. The query runs, returns data, and looks plausible — but the aggregates are inflated. Investigate and fix the query.",
+    "broken_query": "SELECT c.name, COUNT(o.id) AS order_count FROM categories c JOIN products p ON c.id = p.category_id JOIN order_items oi ON p.id = oi.product_id JOIN orders o ON oi.order_id = o.id GROUP BY c.name ORDER BY order_count DESC;",
+    "gold_query": "SELECT c.name, COUNT(DISTINCT o.id) AS order_count FROM categories c JOIN products p ON c.id = p.category_id JOIN order_items oi ON p.id = oi.product_id JOIN orders o ON oi.order_id = o.id GROUP BY c.name ORDER BY order_count DESC;",
+    "max_steps": 15,
+    "hints": [
+      "Run the query and compare the order counts between categories. Do the numbers seem unusually high?",
+      "When multiple products in a category appear in the same order, the JOIN fanout causes that order to be counted multiple times.",
+      "Use COUNT(DISTINCT o.id) instead of COUNT(o.id) to count each order only once per category."
+    ]
   }
 ]

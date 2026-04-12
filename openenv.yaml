@@ -131,6 +131,14 @@ tasks:
     score_range: [0.001, 0.999]
     endpoint: GET /grader
 
+- id: logic_count_fanout
+  difficulty: hard
+  bug_type: logic
+  grader:
+    type: row_diff
+    score_range: [0.001, 0.999]
+    endpoint: GET /grader
+
 - id: cascade_pipeline_bug
   difficulty: hard
   bug_type: cascade
@@ -144,6 +152,6 @@ grader:
   type: deterministic
   score_range: [0.001, 0.999]
   method: >
-    Tasks 1-4, 6-10: Counter-based row diff with float normalisation and column-name bonus.
+    Tasks 1-4, 6-11: Counter-based row diff with float normalisation and column-name bonus.
     Task 5: correctness × 0.6 + efficiency × 0.4 (EXPLAIN QUERY PLAN detects N+1 correlated subqueries).
     All scores clamped to strictly-open interval (0.001, 0.999).

@@ -69,14 +69,14 @@ def test_reset_endpoint_with_specific_task():
 # ============================================================================
 
 def test_tasks_endpoint_returns_eight_tasks():
-    """Test GET /tasks returns exactly 10 tasks."""
+    """Test GET /tasks returns exactly 11 tasks."""
     response = client.get("/tasks")
     assert response.status_code == 200
     data = response.json()
     assert "tasks" in data
     assert isinstance(data["tasks"], list)
-    assert len(data["tasks"]) == 10, "Should return exactly 10 tasks"
-    assert data["count"] == 10, "Count field should be 10"
+    assert len(data["tasks"]) == 11, "Should return exactly 11 tasks"
+    assert data["count"] == 11, "Count field should be 11"
 
 
 def test_tasks_endpoint_schema_structure():
@@ -92,7 +92,7 @@ def test_tasks_endpoint_schema_structure():
 
 
 def test_tasks_endpoint_all_tasks_present():
-    """Verify all 10 required task IDs are present."""
+    """Verify all 11 required task IDs are present."""
     response = client.get("/tasks")
     assert response.status_code == 200
     data = response.json()
@@ -109,6 +109,7 @@ def test_tasks_endpoint_all_tasks_present():
         "cascade_pipeline_bug",
         "logic_null_trap",
         "logic_wrong_join",
+        "logic_count_fanout",
     }
     assert task_ids == expected_task_ids
 

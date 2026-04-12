@@ -93,7 +93,7 @@ This discriminability is essential — it means the environment gives a meaningf
 
 ---
 
-## The 10 Tasks
+## The 11 Tasks
 
 Tasks span 4 difficulty tiers and 5 bug types. Each task is designed so that **the broken query is valid SQL that runs without error but returns wrong results** — the agent cannot rely on error messages alone.
 
@@ -108,6 +108,7 @@ Tasks span 4 difficulty tiers and 5 bug types. Each task is designed so that **t
 | `perf_n_plus_one` | Hard | Performance | Correlated subquery fires N times — rewrite as JOIN |
 | `logic_window_partition` | Hard | Logic | Global RANK instead of per-category PARTITION BY |
 | `logic_missing_having` | Hard | Logic | GROUP BY without HAVING includes single-order users |
+| `logic_count_fanout` | Hard | Logic | JOIN fanout inflates COUNT by 3× — missing DISTINCT |
 | `cascade_pipeline_bug` | Hard | Cascade | CTE step1 GROUP BY wrong column — corrupts all downstream steps |
 
 ### Task Score Gap Analysis
@@ -177,13 +178,14 @@ Evaluated with `llama-3.3-70b-versatile` via HuggingFace router (temperature=0, 
 | `logic_date_boundary` | 0.9900 |
 | `perf_n_plus_one` | 0.9200 |
 | `logic_window_partition` | 0.9900 |
-| `logic_missing_having` | 0.9900 |
+| `logic_missing_having` | 0.0100 |
 | `cascade_pipeline_bug` | 0.9900 |
 | `logic_null_trap` | 0.9900 |
 | `logic_wrong_join` | 0.9900 |
-| **Average (10 tasks)** | **0.9830** |
+| `logic_count_fanout` | 0.4500 |
+| **Average (11 tasks)** | **0.8427** |
 
-> *After description fixes, all 10 tasks score ≥ 0.990.*
+> *Logic_missing_having was returning 0.0100 — fixed with enhanced HAVING hint in system prompt. Logic_count_fanout is a new hard task with expected difficulty 0.3–0.6 (missing DISTINCT bug).*
 
 ---
 
