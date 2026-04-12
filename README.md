@@ -172,16 +172,16 @@ Evaluated with `llama-3.3-70b-versatile` via HuggingFace router (temperature=0, 
 | Task | Score |
 |---|---|
 | `syntax_missing_comma` | 0.9900 |
-| `syntax_ambiguous_column` | 0.0100 |
+| `syntax_ambiguous_column` | 0.9900 |
 | `logic_operator_precedence` | 0.9900 |
 | `logic_date_boundary` | 0.9900 |
-| `perf_n_plus_one` | 0.9740 |
+| `perf_n_plus_one` | 0.9200 |
 | `logic_window_partition` | 0.9900 |
 | `logic_missing_having` | 0.9900 |
 | `cascade_pipeline_bug` | 0.9900 |
 | `logic_null_trap` | 0.9900 |
 | `logic_wrong_join` | 0.9900 |
-| **Average (10 tasks)** | **0.8904** |
+| **Average (10 tasks)** | **0.9830** |
 
 > *After description fixes, all 10 tasks score ≥ 0.990.*
 
