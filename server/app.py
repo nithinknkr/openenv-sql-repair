@@ -298,6 +298,8 @@ def leaderboard():
                     "logic_window_partition": 1.000,
                     "logic_missing_having": 0.990,
                     "cascade_pipeline_bug": 1.000,
+                    "logic_null_trap": 0.9900,
+                    "logic_wrong_join": 0.9900,
                 },
             },
             {
@@ -312,6 +314,8 @@ def leaderboard():
                     "logic_window_partition": 0.01,
                     "logic_missing_having": 0.01,
                     "cascade_pipeline_bug": 0.01,
+                    "logic_null_trap": 0.01,
+                    "logic_wrong_join": 0.01,
                 },
             },
         ],
