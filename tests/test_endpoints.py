@@ -17,7 +17,8 @@ def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
-    assert data == {"status": "ok", "version": "1.0.0"}
+    assert data["status"] == "healthy"
+    assert data["version"] == "1.1.0"
 
 
 # ============================================================================
@@ -106,6 +107,8 @@ def test_tasks_endpoint_all_tasks_present():
         "logic_window_partition",
         "logic_missing_having",
         "cascade_pipeline_bug",
+        "logic_null_trap",
+        "logic_wrong_join",
     }
     assert task_ids == expected_task_ids
 

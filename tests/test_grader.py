@@ -97,7 +97,7 @@ class TestGraderScoring(unittest.TestCase):
         submitted_cols = ["id", "name"]
 
         row_score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
-        self.assertEqual(row_score, 1.0)
+        self.assertEqual(row_score, 0.99)
 
         # Run 10x deterministic for row_diff
         row_scores = [row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols) for _ in range(10)]
@@ -119,14 +119,14 @@ class TestGraderScoring(unittest.TestCase):
         submitted_cols = ["id", "name"]
 
         r = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
-        self.assertGreaterEqual(r, 0.0)
-        self.assertLessEqual(r, 1.0)
+        self.assertGreaterEqual(r, 0.01)
+        self.assertLessEqual(r, 0.99)
 
         sandbox = SQLSandbox()
         try:
             e = _get_efficiency_score(sandbox, "SELECT users.username, orders.id FROM users LEFT JOIN orders ON users.id = orders.user_id;")
-            self.assertGreaterEqual(e, 0.0)
-            self.assertLessEqual(e, 1.0)
+            self.assertGreaterEqual(e, 0.01)
+            self.assertLessEqual(e, 0.99)
         finally:
             sandbox.close()
 
@@ -136,7 +136,7 @@ class TestGraderScoring(unittest.TestCase):
         submitted_rows = [(None,)]
         submitted_cols = ["x"]
         score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
-        self.assertEqual(score, 1.0)
+        self.assertEqual(score, 0.99)
 
     def test_empty_result_guard_select_one_against_expected_rows(self) -> None:
         gold_rows = [(10,), (20,)]
@@ -144,7 +144,7 @@ class TestGraderScoring(unittest.TestCase):
         submitted_rows = [(1,)]  # SELECT 1-like result does not match rows
         submitted_cols = ["y"]  # different column to avoid column bonus
         score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
-        self.assertEqual(score, 0.0)
+        self.assertEqual(score, 0.01)
 
     def test_perfect_match_score_is_one(self) -> None:
         gold_rows = [(1, "a"), (2, "b")]
@@ -152,7 +152,7 @@ class TestGraderScoring(unittest.TestCase):
         submitted_rows = [(1, "a"), (2, "b")]
         submitted_cols = ["id", "name"]
         score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
-        self.assertEqual(score, 1.0)
+        self.assertEqual(score, 0.99)
 
     def test_partial_match_score_between_0_3_and_0_7(self) -> None:
         gold_rows = [(1,), (2,), (3,), (4,)]
@@ -169,10 +169,10 @@ class TestGraderScoring(unittest.TestCase):
         submitted_rows = [(1,), (2,), (3,)]
         submitted_cols = ["wrong"]
         score = row_diff_grade(submitted_rows, submitted_cols, gold_rows, gold_cols)
-        self.assertLess(score, 1.0)
+        self.assertLess(score, 0.99)
 
     def test_hard_task_single_join_scores_one(self) -> None:
-        """A single JOIN executes exactly 1 statement → efficiency 1.0"""
+        """A single JOIN executes exactly 1 statement → efficiency 0.99"""
         sandbox = SQLSandbox()
         try:
             sql = (
@@ -183,17 +183,17 @@ class TestGraderScoring(unittest.TestCase):
                 "GROUP BY products.id, products.name;"
             )
             eff = _get_efficiency_score(sandbox, sql)
-            self.assertEqual(eff, 1.0)
+            self.assertEqual(eff, 0.95)
         finally:
             sandbox.close()
 
     def test_hard_task_correlated_subquery_scores_zero(self) -> None:
-        """Correlated subquery fires N+1 times → count > 10 → efficiency 0.0"""
+        """Correlated subquery fires N+1 times → count > 10 → efficiency 0.05"""
         sandbox = SQLSandbox()
         try:
             sql = _TASKS["perf_n_plus_one"]["broken_query"]
             eff = _get_efficiency_score(sandbox, sql)
-            self.assertEqual(eff, 0.0)
+            self.assertEqual(eff, 0.05)
         finally:
             sandbox.close()
 
@@ -209,7 +209,7 @@ class TestGraderScoring(unittest.TestCase):
 
 
 class TestNewTaskGrading(unittest.TestCase):
-    """Verify gold queries score 1.0 and broken queries score below 1.0 for all new tasks."""
+    """Verify gold queries score 0.99 and broken queries score below 0.99 for all new tasks."""
 
     def _gold_vs_broken(self, task_id: str) -> tuple:
         """Return (gold_score, broken_score) for a task using row_diff_grade."""
@@ -225,54 +225,54 @@ class TestNewTaskGrading(unittest.TestCase):
             sandbox.close()
 
     def test_logic_operator_precedence_gold_scores_one(self) -> None:
-        """Gold query for operator precedence task must score 1.0."""
+        """Gold query for operator precedence task must score 0.99."""
         gold_score, broken_score = self._gold_vs_broken("logic_operator_precedence")
-        self.assertEqual(gold_score, 1.0)
+        self.assertEqual(gold_score, 0.99)
 
     def test_logic_operator_precedence_broken_scores_below_one(self) -> None:
-        """Broken query (missing parens) returns extra rows → score < 1.0."""
+        """Broken query (missing parens) returns extra rows → score < 0.99."""
         gold_score, broken_score = self._gold_vs_broken("logic_operator_precedence")
-        self.assertLess(broken_score, 1.0)
+        self.assertLess(broken_score, 0.99)
 
     def test_logic_date_boundary_gold_scores_one(self) -> None:
-        """Gold query for date boundary task must score 1.0."""
+        """Gold query for date boundary task must score 0.99."""
         gold_score, broken_score = self._gold_vs_broken("logic_date_boundary")
-        self.assertEqual(gold_score, 1.0)
+        self.assertEqual(gold_score, 0.99)
 
     def test_logic_date_boundary_broken_scores_below_one(self) -> None:
-        """Broken query (wrong date + operator) returns 20 rows vs gold 25 → score < 1.0."""
+        """Broken query (wrong date + operator) returns 20 rows vs gold 25 → score < 0.99."""
         gold_score, broken_score = self._gold_vs_broken("logic_date_boundary")
-        self.assertLess(broken_score, 1.0)
+        self.assertLess(broken_score, 0.99)
 
     def test_logic_window_partition_gold_scores_one(self) -> None:
-        """Gold query (PARTITION BY category_id) must score 1.0."""
+        """Gold query (PARTITION BY category_id) must score 0.99."""
         gold_score, broken_score = self._gold_vs_broken("logic_window_partition")
-        self.assertEqual(gold_score, 1.0)
+        self.assertEqual(gold_score, 0.99)
 
     def test_logic_window_partition_broken_scores_below_one(self) -> None:
-        """Broken query ranks globally → most rank values differ from gold → score < 1.0."""
+        """Broken query ranks globally → most rank values differ from gold → score < 0.99."""
         gold_score, broken_score = self._gold_vs_broken("logic_window_partition")
-        self.assertLess(broken_score, 1.0)
+        self.assertLess(broken_score, 0.99)
 
     def test_logic_missing_having_gold_scores_one(self) -> None:
-        """Gold query (with HAVING COUNT > 1) must score 1.0."""
+        """Gold query (with HAVING COUNT > 1) must score 0.99."""
         gold_score, broken_score = self._gold_vs_broken("logic_missing_having")
-        self.assertEqual(gold_score, 1.0)
+        self.assertEqual(gold_score, 0.99)
 
     def test_logic_missing_having_broken_scores_below_one(self) -> None:
-        """Broken query returns all 25 orders vs gold 14 → score < 1.0."""
+        """Broken query returns all 25 orders vs gold 14 → score < 0.99."""
         gold_score, broken_score = self._gold_vs_broken("logic_missing_having")
-        self.assertLess(broken_score, 1.0)
+        self.assertLess(broken_score, 0.99)
 
     def test_cascade_pipeline_bug_gold_scores_one(self) -> None:
-        """Gold query for cascade bug task must score 1.0."""
+        """Gold query for cascade bug task must score 0.99."""
         gold_score, broken_score = self._gold_vs_broken("cascade_pipeline_bug")
-        self.assertEqual(gold_score, 1.0)
+        self.assertEqual(gold_score, 0.99)
 
     def test_cascade_pipeline_bug_broken_scores_below_one(self) -> None:
-        """Broken query (wrong GROUP BY) returns incorrect aggregates → score < 1.0."""
+        """Broken query (wrong GROUP BY) returns incorrect aggregates → score < 0.99."""
         gold_score, broken_score = self._gold_vs_broken("cascade_pipeline_bug")
-        self.assertLess(broken_score, 1.0)
+        self.assertLess(broken_score, 0.99)
 
     def test_all_gold_queries_execute_without_error(self) -> None:
         """Every gold query in tasks.json must execute cleanly in the sandbox."""

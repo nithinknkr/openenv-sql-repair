@@ -18,7 +18,7 @@ def test_full_episode_submit_query_marks_done():
     )
     assert result.done is True
     assert env.state().is_done is True
-    assert env.state().step_count == 2
+    assert env.state().step_count == 3
 
 
 def test_max_steps_enforced_marks_done_when_exceeded():

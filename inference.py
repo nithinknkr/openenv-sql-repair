@@ -195,7 +195,6 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
             print(f"  [LLM ERROR] Exception during LLM call: {exc}")
             # Fallback: submit broken query to end episode safely
             action_json = {"action_type": "submit_query", "sql_query": obs.get("broken_query", "")}
-            action_json = {"action_type": "submit_query", "sql_query": obs.get("broken_query", "")}
 
         action_type = action_json.get("action_type", "unknown")
         messages.append({"role": "assistant", "content": json.dumps(action_json)})

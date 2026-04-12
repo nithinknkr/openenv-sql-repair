@@ -17,7 +17,7 @@
     "task_id": "syntax_ambiguous_column",
     "difficulty": "Easy",
     "bug_type": "Syntax Bug",
-    "description": "This query joins users and orders, but the id values show user ids instead of order ids — fix the SELECT clause to return the id from the orders table.",
+    "description": "This query joins users and orders, but the id values in the result look wrong. Investigate which table each column is being pulled from and fix it.",
     "broken_query": "SELECT users.username, users.id FROM users JOIN orders ON users.id = orders.user_id;",
     "gold_query": "SELECT users.username, orders.id FROM users JOIN orders ON users.id = orders.user_id;",
     "max_steps": 8,
