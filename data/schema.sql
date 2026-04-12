@@ -235,3 +235,8 @@ INSERT INTO order_items (id, order_id, product_id, quantity, unit_price) VALUES 
 -- Order 25: Samsung TV + APC Battery Backup
 INSERT INTO order_items (id, order_id, product_id, quantity, unit_price) VALUES (39, 25, 11, 1, 1299.99);
 INSERT INTO order_items (id, order_id, product_id, quantity, unit_price) VALUES (40, 25, 40, 1,   64.99);
+
+-- Additional orders to test having > 1
+INSERT INTO orders (id, user_id, status, total_amount, created_at) VALUES (26, 1, 'delivered', 150.00, '2025-03-25 10:00:00');
+INSERT INTO orders (id, user_id, status, total_amount, created_at) VALUES (27, 2, 'pending', 75.00, '2025-03-26 11:00:00');
+INSERT INTO orders (id, user_id, status, total_amount, created_at) VALUES (28, 3, 'shipped', 200.00, '2025-03-27 12:00:00');

@@ -167,19 +167,21 @@ curl -X POST "http://localhost:7860/train?task_id=syntax_missing_comma&episodes=
 
 ## Baseline Performance
 
-Evaluated with `llama-3.1-8b-instant` via HuggingFace router (temperature=0, reproducible):
+Evaluated with `llama-3.3-70b-versatile` via HuggingFace router (temperature=0, reproducible):
 
 | Task | Score |
 |---|---|
-| `syntax_missing_comma` | 1.000 |
-| `syntax_ambiguous_column` | 1.000 |
-| `logic_operator_precedence` | 1.000 |
-| `logic_date_boundary` | 0.580 |
-| `perf_n_plus_one` | 1.000 |
-| `logic_window_partition` | 1.000 |
-| `logic_missing_having` | 0.990 |
-| `cascade_pipeline_bug` | 1.000 |
-| **Average (8 original tasks)** | **0.948** |
+| `syntax_missing_comma` | 0.9900 |
+| `syntax_ambiguous_column` | 0.9900 |
+| `logic_operator_precedence` | 0.9900 |
+| `logic_date_boundary` | 0.9900 |
+| `perf_n_plus_one` | 0.9740 |
+| `logic_window_partition` | 0.9900 |
+| `logic_missing_having` | 0.9900 |
+| `cascade_pipeline_bug` | 0.9900 |
+| `logic_null_trap` | 0.9900 |
+| `logic_wrong_join` | 0.9900 |
+| **Average (10 tasks)** | **0.9884** |
 
 ---
 

@@ -90,7 +90,7 @@
     "description": "This query is supposed to return only users who have placed more than one order, but it returns too many rows. Something is missing from the query — find it and fix it.",
     "broken_query": "SELECT u.id, u.username, COUNT(o.id) AS order_count FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.username ORDER BY order_count DESC;",
     "gold_query": "SELECT u.id, u.username, COUNT(o.id) AS order_count FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.username HAVING COUNT(o.id) > 1 ORDER BY order_count DESC;",
-    "max_steps": 15,
+    "max_steps": 20,
     "hints": [
       "Run the query and count how many rows come back. Is that the right number?",
       "The query groups correctly — but where should you filter on the result of an aggregation?",

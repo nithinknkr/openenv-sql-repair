@@ -80,6 +80,7 @@ Debugging strategy:
 6. For performance tasks: use EXPLAIN QUERY PLAN to detect correlated subqueries.
 7. For NULL issues: remember = NULL never matches — use IS NULL or IS NOT NULL.
 8. For aggregation issues: WHERE filters before grouping, HAVING filters after.
+9. When a query description says it 'returns too many rows', always try adding HAVING COUNT() > threshold after GROUP BY.
 
 Always respond with exactly one JSON action. Nothing else."""
 
@@ -191,7 +192,9 @@ def run_task(task_id: str, base_url: Optional[str] = None) -> float:
             raw = completion.choices[0].message.content.strip()
             action_json = json.loads(raw)
         except Exception as exc:
+            print(f"  [LLM ERROR] Exception during LLM call: {exc}")
             # Fallback: submit broken query to end episode safely
+            action_json = {"action_type": "submit_query", "sql_query": obs.get("broken_query", "")}
             action_json = {"action_type": "submit_query", "sql_query": obs.get("broken_query", "")}
 
         action_type = action_json.get("action_type", "unknown")
